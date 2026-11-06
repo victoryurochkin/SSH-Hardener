@@ -612,10 +612,13 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
     private async Task ExportAsync(CancellationToken ct)
     {
-        var audit = _audit ?? _executedPlan?.Audit ?? throw new InvalidOperationException(L["NoAudit"]);
+        var plan = _executedPlan ?? _plan;
+        var audit = _audit ?? plan?.Audit ?? throw new InvalidOperationException(L["NoAudit"]);
+        // A newly previewed plan after restored recovery must not inherit another operation's result.
+        var result = _result is not null && (plan is null || _result.TransactionId == plan.TransactionId) ? _result : null;
         var dialog = new SaveFileDialog { FileName = "SSHHardener-report.html", Filter = "HTML|*.html|Markdown|*.md", AddExtension = true };
         if (dialog.ShowDialog() != true) return;
-        await _reports.ExportAsync(dialog.FileName, audit, _executedPlan ?? _plan, _result, ct);
+        await _reports.ExportAsync(dialog.FileName, audit, plan, result, ct);
         AddLog(L["ReportSaved"]);
     }
 

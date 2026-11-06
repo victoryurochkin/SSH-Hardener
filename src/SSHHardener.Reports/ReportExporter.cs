@@ -10,6 +10,22 @@ public sealed class ReportExporter
 {
     public async Task ExportAsync(string path, ServerAudit audit, HardeningPlan? plan, HardeningResult? result, CancellationToken ct = default)
     {
+        if (plan is not null && result is not null && !string.Equals(plan.TransactionId, result.TransactionId, StringComparison.Ordinal))
+            throw new ArgumentException("The plan and result belong to different transactions.");
+        if (result is { Committed: true, RolledBack: true })
+            throw new ArgumentException("A transaction cannot be reported as both committed and rolled back.");
+        var rollbackConfirmed = plan is not null && result?.RolledBack == true;
+        var commitConfirmed = plan is not null && result?.Committed == true;
+        var connectionBasis = plan is null ? null : rollbackConfirmed ? "rollback" : commitConfirmed ? "committed" : "requested-unconfirmed";
+        var connectionPort = rollbackConfirmed ? plan!.OriginalConnection.Port : plan?.Options.NewPort;
+        var connectionUser = rollbackConfirmed ? plan!.OriginalConnection.Username : plan?.Options.Username;
+        var usesPrivateKey = plan is not null && (!rollbackConfirmed || !string.IsNullOrWhiteSpace(plan.OriginalConnection.PrivateKeyPath));
+        // Explicit allowlist: never serialize either credential-bearing connection/options object.
+        var connection = plan is null ? null : new
+        {
+            Confirmed = rollbackConfirmed || commitConfirmed,
+            Host = plan.OriginalConnection.Host, Port = connectionPort, User = connectionUser, UsesPrivateKey = usesPrivateKey
+        };
         var preChangeAudit = plan is not null && ReferenceEquals(audit, plan.Audit);
         var auditSnapshotKind = preChangeAudit ? "pre-change" : "independent-audit";
         var auditHeading = preChangeAudit ? "## Audit — before changes" : "## Audit — independent snapshot";
@@ -41,18 +57,33 @@ public sealed class ReportExporter
         if (result is not null) lines.AppendLine($"Committed: {result.Committed}; rollback: {result.RolledBack}\n{Plain(result.Message)}");
         if (plan is not null)
         {
-            lines.AppendLine($"Port: {plan.OriginalConnection.Port} → {plan.Options.NewPort}; user: {plan.Options.Username}");
+            lines.AppendLine($"Planned port change: {plan.OriginalConnection.Port} → {plan.Options.NewPort}; planned user: {plan.Options.Username}");
             lines.AppendLine("## Requested policy");
             lines.AppendLine("These are the requested plan settings, not measurements of the server after applying changes.");
             AppendCodeBlock(lines, JsonSerializer.Serialize(requestedPolicy, new JsonSerializerOptions { WriteIndented = true }), "json");
-            lines.AppendLine("## Connection");
-            lines.AppendLine("The ssh command requires an OpenSSH-compatible private-key file. PuTTY PPK files are used with a PPK-capable client such as RDM/PuTTY.");
-            lines.AppendLine("```text");
-            // Connection names are validated at planning; host is encoded for a human-readable report only.
-            lines.AppendLine($"ssh -p {plan.Options.NewPort} -i <private-key-file> {plan.Options.Username}@{plan.OriginalConnection.Host}");
-            lines.AppendLine("```").AppendLine("```sshconfig");
-            lines.AppendLine($"Host hardened-server\n    HostName {plan.OriginalConnection.Host}\n    Port {plan.Options.NewPort}\n    User {plan.Options.Username}\n    IdentityFile <private-key-file>");
-            lines.AppendLine("```");
+            if (rollbackConfirmed || commitConfirmed)
+            {
+                lines.AppendLine(rollbackConfirmed ? "## Connection — after rollback" : "## Connection — committed target");
+                lines.AppendLine($"OutcomeConnection: {connectionUser}@{plan.OriginalConnection.Host}:{connectionPort} ({connectionBasis})");
+                lines.AppendLine("This endpoint follows the recorded outcome. Export does not perform a fresh connection test.");
+                if (usesPrivateKey)
+                    lines.AppendLine("The ssh command requires an OpenSSH-compatible private-key file. PuTTY PPK files are used with a PPK-capable client such as RDM/PuTTY.");
+                else
+                    lines.AppendLine("Use the original authentication settings. No private-key identity was configured for the original connection.");
+                lines.AppendLine("```text");
+                // Connection names are validated at planning; real private-key paths are never exported.
+                var identityArgument = usesPrivateKey ? " -i <private-key-file>" : "";
+                lines.AppendLine($"ssh -p {connectionPort}{identityArgument} {connectionUser}@{plan.OriginalConnection.Host}");
+                lines.AppendLine("```").AppendLine("```sshconfig");
+                lines.AppendLine($"Host hardened-server\n    HostName {plan.OriginalConnection.Host}\n    Port {connectionPort}\n    User {connectionUser}");
+                if (usesPrivateKey) lines.AppendLine("    IdentityFile <private-key-file>");
+                lines.AppendLine("```");
+            }
+            else
+            {
+                lines.AppendLine("## Connection — planned, unverified");
+                lines.AppendLine("The operation has no confirmed outcome. The planned endpoint is unverified; no working connection command is asserted.");
+            }
             foreach (var warning in plan.Warnings) lines.AppendLine("- " + Plain(warning));
         }
         lines.AppendLine(auditHeading).AppendLine(auditSnapshotNote);
@@ -64,7 +95,8 @@ public sealed class ReportExporter
             ".html" or ".htm" => "<!doctype html><html lang=\"ru\"><meta charset=\"utf-8\"><title>SSH-Hardener</title><style>body{max-width:1100px;margin:40px auto;font:16px system-ui;background:#101927;color:#e5ecf5}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><pre>" + WebUtility.HtmlEncode(markdown) + "</pre></html>",
             ".json" => JsonSerializer.Serialize(new { Author = "@victoryur", AuditSnapshotKind = auditSnapshotKind,
                 AuditSnapshotNote = auditSnapshotNote, Audit = audit, Result = result, RequestedPolicy = requestedPolicy,
-                Transaction = transactionId, Port = plan?.Options.NewPort, User = plan?.Options.Username }, new JsonSerializerOptions { WriteIndented = true }),
+                Transaction = transactionId, ConnectionBasis = connectionBasis, Connection = connection,
+                Port = connectionPort, User = connectionUser }, new JsonSerializerOptions { WriteIndented = true }),
             ".md" => markdown,
             _ => throw new ArgumentException("Choose .md, .html or .json. PDF can be printed from HTML.")
         };
