@@ -1,0 +1,11 @@
+bin/
+obj/
+artifacts/
+.vs/
+*.user
+*.pfx
+*.key
+*.ppk
+id_rsa*
+id_ed25519*
+TestResults/

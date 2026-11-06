@@ -1,0 +1,129 @@
+<Window x:Class="SSHHardener.App.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SSH Hardener · @victoryur" Icon="{StaticResource ShieldLockIcon}" Width="1180" Height="820" MinWidth="920" MinHeight="640"
+        Background="{DynamicResource BackgroundBrush}" Foreground="{DynamicResource ForegroundBrush}" FontFamily="Segoe UI" FontSize="14" FontWeight="Normal" WindowStartupLocation="CenterScreen" Closing="WindowClosing">
+  <Grid Background="{DynamicResource BackgroundBrush}">
+    <Grid.ColumnDefinitions><ColumnDefinition Width="214" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+    <Border Background="#132D34" Padding="24,30">
+      <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+        <StackPanel>
+          <Border Background="#22574E" Width="48" Height="48" CornerRadius="12" HorizontalAlignment="Left" Margin="0,0,0,22"><Image Source="{StaticResource ShieldLockIcon}" Width="34" Height="38" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+          <TextBlock Text="SSH" Foreground="White" FontSize="34" FontWeight="Light" />
+          <TextBlock Text="HARDENER" Foreground="White" FontSize="19" FontWeight="SemiBold" Margin="0,0,0,14" />
+          <TextBlock Text="{Binding L[Subtitle]}" Foreground="#B7CCD0" FontSize="13" LineHeight="20" />
+          <Border Height="1" Background="#365057" Margin="0,28" />
+          <TextBlock Text="{Binding L[SafetyHint]}" Foreground="#9FBDC2" FontSize="12" LineHeight="19" />
+        </StackPanel>
+        <StackPanel Grid.Row="2">
+          <TextBlock Text="{Binding L[ByAuthor]}" Foreground="#B7CCD0" FontSize="12" Margin="0,0,0,8" />
+          <Button Content="{Binding L[Language]}" Command="{Binding LanguageCommand}" Style="{StaticResource SidebarButton}" />
+          <Button Content="{Binding L[Theme]}" Click="ToggleTheme" Style="{StaticResource SidebarButton}" />
+          <TextBlock Text="v0.1.0 · preview" Foreground="#789AA2" FontSize="11" Margin="0,18,0,0" />
+        </StackPanel>
+      </Grid>
+    </Border>
+    <Grid Grid.Column="1" Margin="26,20,26,14">
+      <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+      <TabControl SelectedIndex="{Binding SelectedTab}">
+        <TabItem Header="{Binding L[Connection]}">
+          <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel IsEnabled="{Binding Idle}" Margin="0,10,10,0">
+              <Border Style="{StaticResource Card}"><StackPanel>
+                <TextBlock Text="{Binding L[ConnectHeading]}" Style="{StaticResource Heading}" />
+                <TextBlock Text="{Binding L[ConnectHint]}" Style="{StaticResource Hint}" />
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="110" /></Grid.ColumnDefinitions>
+                  <StackPanel Margin="0,0,18,0"><TextBlock Text="{Binding L[Host]}" /><TextBox Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}" /></StackPanel>
+                  <StackPanel Grid.Column="1"><TextBlock Text="{Binding L[Port]}" /><TextBox Text="{Binding Port, UpdateSourceTrigger=PropertyChanged}" /></StackPanel>
+                </Grid>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                  <StackPanel Margin="0,0,18,0"><TextBlock Text="{Binding L[Username]}" /><TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" /></StackPanel>
+                  <StackPanel Grid.Column="1"><TextBlock Text="{Binding L[Password]}" /><PasswordBox x:Name="ConnectionPassword" PasswordChanged="ConnectionSecretChanged" /></StackPanel>
+                </Grid>
+                <TextBlock Text="{Binding L[PrivateKey]}" />
+                <DockPanel><Button DockPanel.Dock="Right" Content="{Binding L[Browse]}" Style="{StaticResource SecondaryButton}" Command="{Binding BrowseKeyCommand}" Margin="10,5,0,14" /><TextBox Text="{Binding PrivateKey, UpdateSourceTrigger=PropertyChanged}" /></DockPanel>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                  <StackPanel Margin="0,0,18,0"><TextBlock Text="{Binding L[Passphrase]}" /><PasswordBox x:Name="ConnectionPassphrase" PasswordChanged="ConnectionSecretChanged" /></StackPanel>
+                  <StackPanel Grid.Column="1"><TextBlock Text="{Binding L[SudoPassword]}" /><PasswordBox x:Name="ConnectionSudoPassword" PasswordChanged="ConnectionSecretChanged" /></StackPanel>
+                </Grid>
+                <Button Content="{Binding L[ConnectButton]}" Command="{Binding ConnectCommand}" IsEnabled="{Binding CanConnect}" HorizontalAlignment="Left" />
+              </StackPanel></Border>
+              <Border Style="{StaticResource Card}"><StackPanel>
+                <TextBlock Text="{Binding L[SavedConnections]}" FontWeight="SemiBold" Margin="0,0,0,10" />
+                <TextBlock Text="{Binding L[EmptyProfiles]}"><TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource Hint}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding Profiles.Count}" Value="0"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+                <ComboBox ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile}" DisplayMemberPath="Name" ToolTip="{Binding L[SavedConnections]}" DropDownOpened="ComboBoxDropDownOpened"><ComboBox.Style><Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}"><Style.Triggers><DataTrigger Binding="{Binding Profiles.Count}" Value="0"><Setter Property="IsEnabled" Value="False" /></DataTrigger></Style.Triggers></Style></ComboBox.Style></ComboBox>
+                <WrapPanel><Button Content="{Binding L[SaveProfile]}" Style="{StaticResource SecondaryButton}" Command="{Binding SaveProfileCommand}" IsEnabled="{Binding CanConnect}" /><Button Content="{Binding L[LoadProfile]}" Style="{StaticResource SecondaryButton}" Command="{Binding LoadProfileCommand}" IsEnabled="{Binding CanLoadProfile}" /></WrapPanel>
+              </StackPanel></Border>
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+        <TabItem Header="{Binding L[Audit]}">
+          <Grid Margin="0,10,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+            <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="{Binding L[AuditHeading]}" Style="{StaticResource Heading}" /><TextBlock Text="{Binding L[AuditHint]}" Style="{StaticResource Hint}" /><TextBlock Text="{Binding Summary}" Margin="0,0,0,10" /><Button Content="{Binding L[RefreshAudit]}" Style="{StaticResource SecondaryButton}" Command="{Binding AuditCommand}" IsEnabled="{Binding CanAudit}" HorizontalAlignment="Left" /></StackPanel></Border>
+            <TextBox Grid.Row="1" Text="{Binding AuditText, Mode=OneWay}" Style="{StaticResource ReadOnlyText}" />
+          </Grid>
+        </TabItem>
+        <TabItem Header="{Binding L[Configure]}">
+          <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel IsEnabled="{Binding Idle}" Margin="0,10,10,0">
+            <Border Style="{StaticResource Card}"><StackPanel>
+              <TextBlock Text="{Binding L[ConfigureHeading]}" Style="{StaticResource Heading}" /><TextBlock Text="{Binding L[ConfigureHint]}" Style="{StaticResource Hint}" />
+              <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="170" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,18,0"><TextBlock Text="{Binding L[NewPort]}" /><TextBox Text="{Binding NewPort, UpdateSourceTrigger=PropertyChanged}" /></StackPanel>
+                <StackPanel Grid.Column="1"><TextBlock Text="{Binding L[NewUsername]}" /><TextBox Text="{Binding NewUsername, UpdateSourceTrigger=PropertyChanged}" /></StackPanel>
+              </Grid>
+              <CheckBox Content="{Binding L[CreateUser]}" IsChecked="{Binding CreateUser}" />
+              <TextBlock Text="{Binding L[NewPrivateKey]}" Margin="0,12,0,0" />
+              <DockPanel><Button DockPanel.Dock="Right" Content="{Binding L[Browse]}" Style="{StaticResource SecondaryButton}" Command="{Binding BrowseNewKeyCommand}" Margin="10,5,0,14" /><TextBox Text="{Binding NewPrivateKey, UpdateSourceTrigger=PropertyChanged}" /></DockPanel>
+              <TextBlock Text="{Binding L[NewPassphrase]}" /><PasswordBox x:Name="NewKeyPassphrase" PasswordChanged="NewKeySecretChanged" />
+              <WrapPanel><Button Content="{Binding L[GenerateKey]}" Command="{Binding GenerateKeyCommand}" /><Button Content="{Binding L[ReadPublicKey]}" Style="{StaticResource SecondaryButton}" Command="{Binding ReadPublicKeyCommand}" /><Button Content="{Binding L[ImportPublicKey]}" Style="{StaticResource SecondaryButton}" Command="{Binding ImportPublicKeyCommand}" /></WrapPanel>
+              <TextBlock Text="{Binding L[KeyHint]}" Style="{StaticResource Hint}" Margin="0,10,0,14" />
+              <TextBlock Text="{Binding L[PublicKey]}" /><TextBox Text="{Binding PublicKey, UpdateSourceTrigger=PropertyChanged}" MaxLength="16384" Height="88" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" FontFamily="Consolas" FontSize="12" />
+              <TextBlock Text="{Binding KeyFingerprint}" FontFamily="Consolas" FontSize="12" Margin="0,0,0,10" />
+              <CheckBox Content="{Binding L[GrantSudo]}" IsChecked="{Binding GrantSudo}" />
+              <CheckBox Content="{Binding L[NoPasswordSudo]}" IsChecked="{Binding NoPasswordSudo}" IsEnabled="{Binding GrantSudo}" />
+            </StackPanel></Border>
+            <Border Style="{StaticResource Card}"><StackPanel>
+              <CheckBox Content="{Binding L[DisablePassword]}" IsChecked="{Binding DisablePassword}" />
+              <TextBlock Text="{Binding L[RootPolicy]}" Margin="0,12,0,0" /><ComboBox ItemsSource="{Binding RootPolicies}" SelectedItem="{Binding RootPolicy}" DropDownOpened="ComboBoxDropDownOpened" />
+              <CheckBox Content="{Binding L[CloseOldPort]}" IsChecked="{Binding CloseOldPort}" />
+              <CheckBox Content="{Binding L[DisableForwarding]}" IsChecked="{Binding DisableForwarding}" />
+              <CheckBox Content="{Binding L[Fail2Ban]}" IsChecked="{Binding Fail2Ban}" />
+              <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <StackPanel Margin="0,12,18,0"><TextBlock Text="{Binding L[MaxRetry]}" /><TextBox Text="{Binding MaxRetry, UpdateSourceTrigger=PropertyChanged}" /></StackPanel>
+                <StackPanel Grid.Column="1" Margin="0,12,0,0"><TextBlock Text="{Binding L[BanSeconds]}" /><TextBox Text="{Binding BanSeconds, UpdateSourceTrigger=PropertyChanged}" /></StackPanel>
+              </Grid>
+              <TextBlock Text="{Binding L[Whitelist]}" /><TextBox Text="{Binding Whitelist, UpdateSourceTrigger=PropertyChanged}" />
+              <TextBlock Text="{Binding L[RollbackMinutes]}" /><TextBox Text="{Binding RollbackMinutes, UpdateSourceTrigger=PropertyChanged}" Width="120" HorizontalAlignment="Left" />
+              <TextBlock Text="{Binding L[ValidationNote]}" Style="{StaticResource Hint}" />
+              <Button Content="{Binding L[BuildPlan]}" Command="{Binding BuildPlanCommand}" IsEnabled="{Binding CanBuildPlan}" HorizontalAlignment="Left" />
+            </StackPanel></Border>
+          </StackPanel></ScrollViewer>
+        </TabItem>
+        <TabItem Header="{Binding L[Preview]}">
+          <Grid Margin="0,10,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+            <StackPanel><TextBlock Text="{Binding L[PreviewHeading]}" Style="{StaticResource Heading}" /><TextBlock Text="{Binding L[PreviewHint]}" Style="{StaticResource Hint}" /></StackPanel>
+            <TextBox Grid.Row="1" Text="{Binding PreviewText, Mode=OneWay}" Style="{StaticResource ReadOnlyText}" />
+            <Button Grid.Row="2" Content="{Binding L[ApplyPlan]}" Command="{Binding ApplyCommand}" IsEnabled="{Binding CanApply}" HorizontalAlignment="Left" Margin="0,5,0,14" />
+          </Grid>
+        </TabItem>
+        <TabItem Header="{Binding L[Apply]}">
+          <Grid Margin="0,10,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+            <StackPanel><TextBlock Text="{Binding L[ApplyHeading]}" Style="{StaticResource Heading}" /><TextBlock Text="{Binding L[LogHint]}" Style="{StaticResource Hint}" /><ProgressBar Value="{Binding Progress, Mode=OneWay}" Minimum="0" Maximum="100" Height="8" Background="{DynamicResource BorderBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0" Foreground="{DynamicResource AccentBrush}" Margin="0,0,0,16" /></StackPanel>
+            <Grid Grid.Row="1">
+              <ListBox x:Name="ActionLog" ItemsSource="{Binding Log}" Background="{DynamicResource CardBrush}" Foreground="{DynamicResource ForegroundBrush}" BorderBrush="{DynamicResource BorderBrush}" FontFamily="Consolas" FontSize="12" ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+              <TextBlock Text="{Binding L[EmptyLog]}" Margin="16" VerticalAlignment="Top" IsHitTestVisible="False"><TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource Hint}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding Log.Count}" Value="0"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+            </Grid>
+            <WrapPanel Grid.Row="2" Margin="0,12,0,0"><Button Content="{Binding L[Cancel]}" Command="{Binding CancelCommand}" IsEnabled="{Binding Busy}" Background="#A64636" BorderBrush="#A64636" /><Button Content="{Binding L[Rollback]}" Style="{StaticResource WarningButton}" Command="{Binding RollbackCommand}" IsEnabled="{Binding CanRollback}" /><Button Content="{Binding L[ExportReport]}" Style="{StaticResource SecondaryButton}" Command="{Binding ExportCommand}" IsEnabled="{Binding CanExport}" /></WrapPanel>
+          </Grid>
+        </TabItem>
+        <TabItem Header="{Binding L[Bans]}">
+          <Grid Margin="0,10,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+            <StackPanel><TextBlock Text="{Binding L[BansHeading]}" Style="{StaticResource Heading}" /><TextBlock Text="{Binding L[BansHint]}" Style="{StaticResource Hint}" /><Button Content="{Binding L[RefreshBans]}" Style="{StaticResource SecondaryButton}" Command="{Binding RefreshBansCommand}" IsEnabled="{Binding CanManageBans}" HorizontalAlignment="Left" Margin="0,0,0,16" /></StackPanel>
+            <TextBox Grid.Row="1" Text="{Binding BanText, Mode=OneWay}" Style="{StaticResource ReadOnlyText}" />
+            <StackPanel Grid.Row="2" IsEnabled="{Binding Idle}" Margin="0,12,0,0"><TextBlock Text="{Binding L[BanIp]}" /><DockPanel><Button DockPanel.Dock="Right" Content="{Binding L[Unban]}" Style="{StaticResource WarningButton}" Command="{Binding UnbanCommand}" IsEnabled="{Binding CanUnban}" Margin="10,5,0,14" /><TextBox Text="{Binding BanIp, UpdateSourceTrigger=PropertyChanged}" /></DockPanel></StackPanel>
+          </Grid>
+        </TabItem>
+      </TabControl>
+      <Border Grid.Row="1" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,12,0,0" Margin="0,12,0,0"><TextBlock Text="{Binding Status}" ToolTip="{Binding Status}" Foreground="{DynamicResource MutedBrush}" FontSize="12" LineHeight="18" MaxHeight="36" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" /></Border>
+    </Grid>
+  </Grid>
+</Window>

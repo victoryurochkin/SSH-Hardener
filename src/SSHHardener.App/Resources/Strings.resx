@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+<resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+<resheader name="version"><value>2.0</value></resheader>
+<resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+<resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+<data name="Subtitle" xml:space="preserve"><value>Базовая защита SSH с проверкой доступа</value></data>
+<data name="ByAuthor" xml:space="preserve"><value>Автор @victoryur</value></data>
+<data name="Connection" xml:space="preserve"><value>1  Подключение</value></data>
+<data name="Audit" xml:space="preserve"><value>2  Аудит</value></data>
+<data name="Configure" xml:space="preserve"><value>3  Настройка</value></data>
+<data name="Preview" xml:space="preserve"><value>4  Предпросмотр</value></data>
+<data name="Apply" xml:space="preserve"><value>5  Применение</value></data>
+<data name="Bans" xml:space="preserve"><value>Блокировки</value></data>
+<data name="ConnectHeading" xml:space="preserve"><value>Подключение к серверу</value></data>
+<data name="ConnectHint" xml:space="preserve"><value>Подтвердите отпечаток хоста по доверенному каналу. Пароли не сохраняются в профиле.</value></data>
+<data name="Host" xml:space="preserve"><value>IP-адрес или имя хоста</value></data>
+<data name="Port" xml:space="preserve"><value>Порт</value></data>
+<data name="Username" xml:space="preserve"><value>Имя пользователя</value></data>
+<data name="Password" xml:space="preserve"><value>Пароль подключения</value></data>
+<data name="PrivateKey" xml:space="preserve"><value>Приватный ключ подключения (необязательно)</value></data>
+<data name="Passphrase" xml:space="preserve"><value>Парольная фраза ключа</value></data>
+<data name="SudoPassword" xml:space="preserve"><value>Пароль sudo (если отличается)</value></data>
+<data name="Browse" xml:space="preserve"><value>Выбрать…</value></data>
+<data name="ConnectButton" xml:space="preserve"><value>Подключиться и выполнить аудит</value></data>
+<data name="SaveProfile" xml:space="preserve"><value>Сохранить профиль</value></data>
+<data name="LoadProfile" xml:space="preserve"><value>Открыть профиль</value></data>
+<data name="AuditHeading" xml:space="preserve"><value>Текущее состояние сервера</value></data>
+<data name="AuditHint" xml:space="preserve"><value>Аудит только читает состояние. Автоматическое применение доступно лишь для поддерживаемых сочетаний ОС и сервисов.</value></data>
+<data name="RefreshAudit" xml:space="preserve"><value>Обновить аудит</value></data>
+<data name="EmptyAudit" xml:space="preserve"><value>Подключитесь к серверу, чтобы увидеть аудит.</value></data>
+<data name="ConfigureHeading" xml:space="preserve"><value>План защиты</value></data>
+<data name="ConfigureHint" xml:space="preserve"><value>Изменения пока не применяются. Проверка нового входа требует соответствующего приватного ключа.</value></data>
+<data name="NewPort" xml:space="preserve"><value>Новый TCP-порт SSH</value></data>
+<data name="NewUsername" xml:space="preserve"><value>Пользователь для нового входа</value></data>
+<data name="CreateUser" xml:space="preserve"><value>Создать нового пользователя</value></data>
+<data name="NewPrivateKey" xml:space="preserve"><value>Приватный ключ нового пользователя</value></data>
+<data name="NewPassphrase" xml:space="preserve"><value>Парольная фраза нового ключа</value></data>
+<data name="PublicKey" xml:space="preserve"><value>Публичный ключ OpenSSH</value></data>
+<data name="ReadPublicKey" xml:space="preserve"><value>Получить публичный ключ из приватного</value></data>
+<data name="ImportPublicKey" xml:space="preserve"><value>Импорт .pub</value></data>
+<data name="GenerateKey" xml:space="preserve"><value>Создать RSA 4096…</value></data>
+<data name="KeyHint" xml:space="preserve"><value>Нет ключей? Задайте парольную фразу от 12 символов и нажмите «Создать RSA 4096…». Вы выберете папку и имя файла: приложение сохранит шифрованный приватный ключ .pem и публичный .pem.pub рядом. На сервер отправляется только публичный ключ. Сохраните оба файла и парольную фразу в безопасном месте: восстановить забытую фразу нельзя.</value></data>
+<data name="GrantSudo" xml:space="preserve"><value>Предоставить административный доступ sudo</value></data>
+<data name="NoPasswordSudo" xml:space="preserve"><value>NOPASSWD: sudo без пароля (полный контроль сервера)</value></data>
+<data name="NewSudoPassword" xml:space="preserve"><value>Пароль sudo нового пользователя</value></data>
+<data name="DisablePassword" xml:space="preserve"><value>Отключить SSH-вход по паролю после проверки ключа</value></data>
+<data name="RootPolicy" xml:space="preserve"><value>Вход root</value></data>
+<data name="CloseOldPort" xml:space="preserve"><value>Удалить старый слушающий порт после проверки</value></data>
+<data name="DisableForwarding" xml:space="preserve"><value>Отключить туннели, agent forwarding и X11</value></data>
+<data name="Fail2Ban" xml:space="preserve"><value>Настроить установленный fail2ban</value></data>
+<data name="MaxRetry" xml:space="preserve"><value>Число событий до блокировки</value></data>
+<data name="BanSeconds" xml:space="preserve"><value>Длительность бана, секунд (-1 = бессрочно)</value></data>
+<data name="Whitelist" xml:space="preserve"><value>Дополнительные IP / CIDR через запятую</value></data>
+<data name="RollbackMinutes" xml:space="preserve"><value>Автооткат через, минут</value></data>
+<data name="SafetyHint" xml:space="preserve"><value>Старый и новый порты остаются доступны на время проверки. После окончательных изменений приложение повторно проверяет ключ и нужные права.</value></data>
+<data name="BuildPlan" xml:space="preserve"><value>Проверить параметры и построить план</value></data>
+<data name="PreviewHeading" xml:space="preserve"><value>Команды и откат</value></data>
+<data name="PreviewHint" xml:space="preserve"><value>Проверьте каждый шаг. Облачный файрвол и внешние сетевые правила нужно подготовить отдельно.</value></data>
+<data name="EmptyPlan" xml:space="preserve"><value>Сначала выполните аудит и постройте план.</value></data>
+<data name="ApplyPlan" xml:space="preserve"><value>Применить проверенный план…</value></data>
+<data name="ApplyHeading" xml:space="preserve"><value>Выполнение и результат</value></data>
+<data name="Cancel" xml:space="preserve"><value>Отменить с откатом</value></data>
+<data name="Rollback" xml:space="preserve"><value>Откатить последнюю транзакцию…</value></data>
+<data name="ExportReport" xml:space="preserve"><value>Экспортировать отчёт…</value></data>
+<data name="LogHint" xml:space="preserve"><value>Журнал содержит этапы и результат. Секретные данные в журнал не включаются.</value></data>
+<data name="BansHeading" xml:space="preserve"><value>Блокировки fail2ban</value></data>
+<data name="BansHint" xml:space="preserve"><value>Работа с jail sshd. Для разблокировки введите точный IP-адрес.</value></data>
+<data name="RefreshBans" xml:space="preserve"><value>Обновить список</value></data>
+<data name="Unban" xml:space="preserve"><value>Разблокировать IP</value></data>
+<data name="BanIp" xml:space="preserve"><value>IP-адрес</value></data>
+<data name="Language" xml:space="preserve"><value>RU / EN</value></data>
+<data name="Theme" xml:space="preserve"><value>Тема</value></data>
+<data name="Ready" xml:space="preserve"><value>Готово к подключению</value></data>
+<data name="Connecting" xml:space="preserve"><value>Подключение и проверка хоста…</value></data>
+<data name="Auditing" xml:space="preserve"><value>Аудит сервера…</value></data>
+<data name="Connected" xml:space="preserve"><value>Аудит завершён</value></data>
+<data name="PlanReady" xml:space="preserve"><value>План готов к проверке</value></data>
+<data name="Applying" xml:space="preserve"><value>Применение изменений…</value></data>
+<data name="Failed" xml:space="preserve"><value>Операция остановлена</value></data>
+<data name="ConfirmHost" xml:space="preserve"><value>Проверьте отпечаток хоста по независимому доверенному каналу. Доверять этому ключу?</value></data>
+<data name="ConfirmApply" xml:space="preserve"><value>Будут изменены настройки сервера. Новый порт открыт в облачном файрволе, план просмотрен и есть аварийный доступ через консоль провайдера?</value></data>
+<data name="ConfirmRisk" xml:space="preserve"><value>Выбран бессрочный бан или NOPASSWD sudo. Вы понимаете последствия и проверили адрес администратора в белом списке?</value></data>
+<data name="ConfirmRollback" xml:space="preserve"><value>Восстановить настройки из последней транзакции? Текущее подключение может прерваться.</value></data>
+<data name="Error" xml:space="preserve"><value>Ошибка</value></data>
+<data name="ProfileSaved" xml:space="preserve"><value>Профиль сохранён без паролей.</value></data>
+<data name="KeyGenerated" xml:space="preserve"><value>Пара ключей создана. Сохраните оба файла и парольную фразу в безопасном месте.</value></data>
+<data name="NoConnection" xml:space="preserve"><value>Сначала подключитесь к серверу.</value></data>
+<data name="StaleConnection" xml:space="preserve"><value>Параметры подключения изменились. Подключитесь заново.</value></data>
+<data name="StalePlan" xml:space="preserve"><value>Параметры изменились. Постройте план заново.</value></data>
+<data name="OperationCancelled" xml:space="preserve"><value>Операция отменена. Проверьте результат серверного отката.</value></data>
+<data name="KeyExists" xml:space="preserve"><value>Файл уже существует. Выберите новое имя.</value></data>
+<data name="PortInvalid" xml:space="preserve"><value>Порт должен быть целым числом от 1 до 65535.</value></data>
+<data name="NumberInvalid" xml:space="preserve"><value>Проверьте числовые параметры.</value></data>
+<data name="ReportSaved" xml:space="preserve"><value>Отчёт сохранён.</value></data>
+<data name="NoAudit" xml:space="preserve"><value>Для отчёта необходим аудит сервера.</value></data>
+<data name="Disconnected" xml:space="preserve"><value>Не подключено</value></data>
+<data name="Unknown" xml:space="preserve"><value>Неизвестно</value></data>
+<data name="CloseBusy" xml:space="preserve"><value>Изменения ещё выполняются. Сначала отмените операцию и дождитесь результата отката.</value></data>
+<data name="AuditSummary" xml:space="preserve"><value>ОС / OpenSSH / Firewall / Init</value></data>
+<data name="ValidationNote" xml:space="preserve"><value>Поддержка отдельных модулей определяется при построении плана. Неподдерживаемые сценарии блокируются.</value></data>
+<data name="SavedConnections" xml:space="preserve"><value>Сохранённые подключения</value></data>
+<data name="EmptyProfiles" xml:space="preserve"><value>Сохраните параметры подключения, чтобы быстро подключаться к этому серверу в следующий раз. Пароли в профиль не записываются.</value></data>
+<data name="EmptyBans" xml:space="preserve"><value>Подключитесь к серверу и нажмите «Обновить список», чтобы получить блокировки jail sshd.</value></data>
+<data name="EmptyLog" xml:space="preserve"><value>Здесь появятся этапы выполнения и результат проверки. Пока изменения не применялись.</value></data>
+</root>

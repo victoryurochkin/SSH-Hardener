@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+<resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+<resheader name="version"><value>2.0</value></resheader>
+<resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+<resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+<data name="Subtitle" xml:space="preserve"><value>SSH hardening with verified access</value></data>
+<data name="ByAuthor" xml:space="preserve"><value>By @victoryur</value></data>
+<data name="Connection" xml:space="preserve"><value>1  Connect</value></data>
+<data name="Audit" xml:space="preserve"><value>2  Audit</value></data>
+<data name="Configure" xml:space="preserve"><value>3  Configure</value></data>
+<data name="Preview" xml:space="preserve"><value>4  Preview</value></data>
+<data name="Apply" xml:space="preserve"><value>5  Apply</value></data>
+<data name="Bans" xml:space="preserve"><value>Bans</value></data>
+<data name="ConnectHeading" xml:space="preserve"><value>Connect to a server</value></data>
+<data name="ConnectHint" xml:space="preserve"><value>Verify the host fingerprint through a trusted channel. Profiles do not store passwords.</value></data>
+<data name="Host" xml:space="preserve"><value>IP address or hostname</value></data>
+<data name="Port" xml:space="preserve"><value>Port</value></data>
+<data name="Username" xml:space="preserve"><value>Username</value></data>
+<data name="Password" xml:space="preserve"><value>Connection password</value></data>
+<data name="PrivateKey" xml:space="preserve"><value>Connection private key (optional)</value></data>
+<data name="Passphrase" xml:space="preserve"><value>Key passphrase</value></data>
+<data name="SudoPassword" xml:space="preserve"><value>Sudo password (if different)</value></data>
+<data name="Browse" xml:space="preserve"><value>Browse…</value></data>
+<data name="ConnectButton" xml:space="preserve"><value>Connect and audit</value></data>
+<data name="SaveProfile" xml:space="preserve"><value>Save profile</value></data>
+<data name="LoadProfile" xml:space="preserve"><value>Load profile</value></data>
+<data name="AuditHeading" xml:space="preserve"><value>Current server state</value></data>
+<data name="AuditHint" xml:space="preserve"><value>The audit only reads server state. Automatic changes require a supported OS and service combination.</value></data>
+<data name="RefreshAudit" xml:space="preserve"><value>Refresh audit</value></data>
+<data name="EmptyAudit" xml:space="preserve"><value>Connect to a server to run the audit.</value></data>
+<data name="ConfigureHeading" xml:space="preserve"><value>Hardening plan</value></data>
+<data name="ConfigureHint" xml:space="preserve"><value>No changes are made yet. A matching private key is required to verify the new login.</value></data>
+<data name="NewPort" xml:space="preserve"><value>New SSH TCP port</value></data>
+<data name="NewUsername" xml:space="preserve"><value>User for the new login</value></data>
+<data name="CreateUser" xml:space="preserve"><value>Create a new user</value></data>
+<data name="NewPrivateKey" xml:space="preserve"><value>New user's private key</value></data>
+<data name="NewPassphrase" xml:space="preserve"><value>New key passphrase</value></data>
+<data name="PublicKey" xml:space="preserve"><value>OpenSSH public key</value></data>
+<data name="ReadPublicKey" xml:space="preserve"><value>Read public key from private key</value></data>
+<data name="ImportPublicKey" xml:space="preserve"><value>Import .pub</value></data>
+<data name="GenerateKey" xml:space="preserve"><value>Generate RSA 4096…</value></data>
+<data name="KeyHint" xml:space="preserve"><value>No keys yet? Enter a passphrase of at least 12 characters and select “Generate RSA 4096…”. Choose a folder and filename: the encrypted .pem private key and .pem.pub public key are saved together. Only the public key is uploaded. Keep both files and the passphrase safe: a forgotten passphrase cannot be recovered.</value></data>
+<data name="GrantSudo" xml:space="preserve"><value>Grant administrator access with sudo</value></data>
+<data name="NoPasswordSudo" xml:space="preserve"><value>NOPASSWD: sudo without a password (full server control)</value></data>
+<data name="NewSudoPassword" xml:space="preserve"><value>New user's sudo password</value></data>
+<data name="DisablePassword" xml:space="preserve"><value>Disable SSH password login after key verification</value></data>
+<data name="RootPolicy" xml:space="preserve"><value>Root login</value></data>
+<data name="CloseOldPort" xml:space="preserve"><value>Remove the old listening port after verification</value></data>
+<data name="DisableForwarding" xml:space="preserve"><value>Disable tunnels, agent forwarding and X11</value></data>
+<data name="Fail2Ban" xml:space="preserve"><value>Configure an existing fail2ban installation</value></data>
+<data name="MaxRetry" xml:space="preserve"><value>Matching failures before a ban</value></data>
+<data name="BanSeconds" xml:space="preserve"><value>Ban duration, seconds (-1 = indefinite)</value></data>
+<data name="Whitelist" xml:space="preserve"><value>Additional IPs / CIDRs, comma-separated</value></data>
+<data name="RollbackMinutes" xml:space="preserve"><value>Automatic rollback after, minutes</value></data>
+<data name="SafetyHint" xml:space="preserve"><value>Both ports remain available during verification. The app verifies the key and required privileges again after the final changes.</value></data>
+<data name="BuildPlan" xml:space="preserve"><value>Validate and build plan</value></data>
+<data name="PreviewHeading" xml:space="preserve"><value>Commands and rollback</value></data>
+<data name="PreviewHint" xml:space="preserve"><value>Review every step. Prepare cloud firewalls and external network rules separately.</value></data>
+<data name="EmptyPlan" xml:space="preserve"><value>Run an audit and build a plan first.</value></data>
+<data name="ApplyPlan" xml:space="preserve"><value>Apply reviewed plan…</value></data>
+<data name="ApplyHeading" xml:space="preserve"><value>Execution and result</value></data>
+<data name="Cancel" xml:space="preserve"><value>Cancel and roll back</value></data>
+<data name="Rollback" xml:space="preserve"><value>Roll back the last transaction…</value></data>
+<data name="ExportReport" xml:space="preserve"><value>Export report…</value></data>
+<data name="LogHint" xml:space="preserve"><value>The log records steps and results. Secret data is excluded.</value></data>
+<data name="BansHeading" xml:space="preserve"><value>Fail2ban bans</value></data>
+<data name="BansHint" xml:space="preserve"><value>Uses the sshd jail. Enter an exact IP address to unban.</value></data>
+<data name="RefreshBans" xml:space="preserve"><value>Refresh bans</value></data>
+<data name="Unban" xml:space="preserve"><value>Unban IP</value></data>
+<data name="BanIp" xml:space="preserve"><value>IP address</value></data>
+<data name="Language" xml:space="preserve"><value>RU / EN</value></data>
+<data name="Theme" xml:space="preserve"><value>Theme</value></data>
+<data name="Ready" xml:space="preserve"><value>Ready to connect</value></data>
+<data name="Connecting" xml:space="preserve"><value>Connecting and verifying host…</value></data>
+<data name="Auditing" xml:space="preserve"><value>Auditing server…</value></data>
+<data name="Connected" xml:space="preserve"><value>Audit complete</value></data>
+<data name="PlanReady" xml:space="preserve"><value>Plan ready for review</value></data>
+<data name="Applying" xml:space="preserve"><value>Applying changes…</value></data>
+<data name="Failed" xml:space="preserve"><value>Operation stopped</value></data>
+<data name="ConfirmHost" xml:space="preserve"><value>Verify the host fingerprint through an independent trusted channel. Trust this key?</value></data>
+<data name="ConfirmApply" xml:space="preserve"><value>Server settings will change. Is the new port allowed in the cloud firewall, has the plan been reviewed, and is provider console recovery available?</value></data>
+<data name="ConfirmRisk" xml:space="preserve"><value>An indefinite ban or NOPASSWD sudo is selected. Do you understand the impact and have you verified the administrator whitelist?</value></data>
+<data name="ConfirmRollback" xml:space="preserve"><value>Restore settings from the last transaction? The current connection may close.</value></data>
+<data name="Error" xml:space="preserve"><value>Error</value></data>
+<data name="ProfileSaved" xml:space="preserve"><value>Profile saved without passwords.</value></data>
+<data name="KeyGenerated" xml:space="preserve"><value>Key pair created. Keep both files and the passphrase in a secure location.</value></data>
+<data name="NoConnection" xml:space="preserve"><value>Connect to a server first.</value></data>
+<data name="StaleConnection" xml:space="preserve"><value>Connection settings changed. Reconnect first.</value></data>
+<data name="StalePlan" xml:space="preserve"><value>Settings changed. Rebuild the plan.</value></data>
+<data name="OperationCancelled" xml:space="preserve"><value>Operation cancelled. Check the server rollback result.</value></data>
+<data name="KeyExists" xml:space="preserve"><value>The file already exists. Choose a new filename.</value></data>
+<data name="PortInvalid" xml:space="preserve"><value>Port must be an integer from 1 to 65535.</value></data>
+<data name="NumberInvalid" xml:space="preserve"><value>Check the numeric settings.</value></data>
+<data name="ReportSaved" xml:space="preserve"><value>Report saved.</value></data>
+<data name="NoAudit" xml:space="preserve"><value>A server audit is required for a report.</value></data>
+<data name="Disconnected" xml:space="preserve"><value>Disconnected</value></data>
+<data name="Unknown" xml:space="preserve"><value>Unknown</value></data>
+<data name="CloseBusy" xml:space="preserve"><value>Changes are still running. Cancel and wait for rollback before closing.</value></data>
+<data name="AuditSummary" xml:space="preserve"><value>OS / OpenSSH / Firewall / Init</value></data>
+<data name="ValidationNote" xml:space="preserve"><value>Module support is checked when building the plan. Unsupported scenarios are blocked.</value></data>
+<data name="SavedConnections" xml:space="preserve"><value>Saved connections</value></data>
+<data name="EmptyProfiles" xml:space="preserve"><value>Save the connection settings to reconnect to this server quickly next time. Profiles do not store passwords.</value></data>
+<data name="EmptyBans" xml:space="preserve"><value>Connect to a server and select “Refresh bans” to read the sshd jail ban list.</value></data>
+<data name="EmptyLog" xml:space="preserve"><value>Execution steps and verification results will appear here. No changes have been applied yet.</value></data>
+</root>
