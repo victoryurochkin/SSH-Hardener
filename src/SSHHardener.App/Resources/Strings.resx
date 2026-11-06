@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+<resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+<resheader name="version"><value>2.0</value></resheader>
+<resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+<resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+<data name="Subtitle" xml:space="preserve"><value>Базовая защита SSH с проверкой доступа</value></data>
+<data name="ByAuthor" xml:space="preserve"><value>Автор @victoryur</value></data>
+<data name="Connection" xml:space="preserve"><value>1  Подключение</value></data>
+<data name="Audit" xml:space="preserve"><value>2  Аудит</value></data>
+<data name="Configure" xml:space="preserve"><value>3  Настройка</value></data>
+<data name="Preview" xml:space="preserve"><value>4  Предпросмотр</value></data>
+<data name="Apply" xml:space="preserve"><value>5  Применение</value></data>
+<data name="Bans" xml:space="preserve"><value>Блокировки</value></data>
+<data name="ConnectHeading" xml:space="preserve"><value>Подключение к серверу</value></data>
+<data name="ConnectHint" xml:space="preserve"><value>Подтвердите отпечаток хоста по доверенному каналу. Пароли не сохраняются в профиле.</value></data>
+<data name="Host" xml:space="preserve"><value>IP-адрес или имя хоста</value></data>
+<data name="Port" xml:space="preserve"><value>Порт</value></data>
+<data name="Username" xml:space="preserve"><value>Имя пользователя</value></data>
+<data name="Password" xml:space="preserve"><value>Пароль подключения</value></data>
+<data name="PrivateKey" xml:space="preserve"><value>Приватный ключ подключения (необязательно)</value></data>
+<data name="Passphrase" xml:space="preserve"><value>Парольная фраза ключа</value></data>
+<data name="SudoPassword" xml:space="preserve"><value>Пароль sudo (если отличается)</value></data>
+<data name="Browse" xml:space="preserve"><value>Выбрать…</value></data>
+<data name="ConnectButton" xml:space="preserve"><value>Подключиться и выполнить аудит</value></data>
+<data name="SaveProfile" xml:space="preserve"><value>Сохранить профиль</value></data>
+<data name="LoadProfile" xml:space="preserve"><value>Открыть профиль</value></data>
+<data name="AuditHeading" xml:space="preserve"><value>Текущее состояние сервера</value></data>
+<data name="AuditHint" xml:space="preserve"><value>Аудит только читает состояние. Автоматическое применение доступно лишь для поддерживаемых сочетаний ОС и сервисов.</value></data>
+<data name="RefreshAudit" xml:space="preserve"><value>Обновить аудит</value></data>
+<data name="EmptyAudit" xml:space="preserve"><value>Подключитесь к серверу, чтобы увидеть аудит.</value></data>
+<data name="ConfigureHeading" xml:space="preserve"><value>План защиты</value></data>
+<data name="ConfigureHint" xml:space="preserve"><value>Изменения пока не применяются. Проверка нового входа требует соответствующего приватного ключа.</value></data>
+<data name="NewPort" xml:space="preserve"><value>Новый TCP-порт SSH</value></data>
+<data name="NewUsername" xml:space="preserve"><value>Пользователь для нового входа</value></data>
+<data name="CreateUser" xml:space="preserve"><value>Создать нового пользователя</value></data>
+<data name="NewPrivateKey" xml:space="preserve"><value>Приватный SSH-ключ</value></data>
+<data name="NewPassphrase" xml:space="preserve"><value>Парольная фраза ключа</value></data>
+<data name="PublicKey" xml:space="preserve"><value>Публичный ключ OpenSSH</value></data>
+<data name="ReadPublicKey" xml:space="preserve"><value>Получить публичный ключ из приватного</value></data>
+<data name="ImportPublicKey" xml:space="preserve"><value>Импорт .pub</value></data>
+<data name="GenerateKey" xml:space="preserve"><value>Создать ключ…</value></data>
+<data name="KeyHint" xml:space="preserve"><value>Нет ключей? Выберите Ed25519 или RSA 4096, задайте парольную фразу от 12 символов и нажмите «Создать ключ…». При сохранении доступны PPK v3 и PKCS#8 PEM. Приватный ключ и файл .pub сохраняются рядом; на сервер отправляется только публичный ключ. Сохраните оба файла и парольную фразу: забытую фразу восстановить нельзя.</value></data>
+<data name="ExportPuttyKey" xml:space="preserve"><value>Экспорт для RDM / PuTTY…</value></data>
+<data name="NewExportPuttyHint" xml:space="preserve"><value>Для существующего ключа выберите приватный файл выше, введите его текущую парольную фразу и нажмите «Экспорт для RDM / PuTTY…». Новый файл .ppk содержит тот же ключ с прежним отпечатком; повторно применять настройки сервера не нужно.</value></data>
+<data name="PuttyKeyExported" xml:space="preserve"><value>Ключ экспортирован в PPK v3. В клиенте выберите этот .ppk; используется та же парольная фраза.</value></data>
+<data name="ExportPuttyTitle" xml:space="preserve"><value>Экспорт ключа для RDM / PuTTY</value></data>
+<data name="GrantSudo" xml:space="preserve"><value>Предоставить административный доступ sudo</value></data>
+<data name="NoPasswordSudo" xml:space="preserve"><value>NOPASSWD: sudo без пароля (полный контроль сервера)</value></data>
+<data name="NewSudoPassword" xml:space="preserve"><value>Пароль sudo нового пользователя</value></data>
+<data name="DisablePassword" xml:space="preserve"><value>Отключить SSH-вход по паролю после проверки ключа</value></data>
+<data name="RootPolicy" xml:space="preserve"><value>Вход root</value></data>
+<data name="CloseOldPort" xml:space="preserve"><value>Удалить старый слушающий порт после проверки</value></data>
+<data name="DisableForwarding" xml:space="preserve"><value>Отключить туннели, agent forwarding и X11</value></data>
+<data name="Fail2Ban" xml:space="preserve"><value>Установить и настроить Fail2ban</value></data>
+<data name="MaxRetry" xml:space="preserve"><value>Ошибок входа до блокировки IP</value></data>
+<data name="MaxAuthTries" xml:space="preserve"><value>Попыток в одном SSH-соединении</value></data>
+<data name="FindTimeMinutes" xml:space="preserve"><value>Период учёта ошибок, минут</value></data>
+<data name="Fail2BanHint" xml:space="preserve"><value>Лимит SSH действует в одном соединении. Fail2ban считает ошибки одного IP за указанный период, включая разные соединения. По умолчанию: 3 ошибки за 10 минут, блокировка на 1 час. Видимый серверу IP администратора добавляется в белый список. На Debian/Ubuntu Fail2ban при необходимости устанавливается из настроенных репозиториев ОС; на RPM-системах он должен быть установлен заранее.</value></data>
+<data name="BanSeconds" xml:space="preserve"><value>Длительность бана, секунд (-1 = бессрочно)</value></data>
+<data name="Whitelist" xml:space="preserve"><value>Дополнительные IP / CIDR через запятую</value></data>
+<data name="RollbackMinutes" xml:space="preserve"><value>Автооткат через, минут</value></data>
+<data name="SafetyHint" xml:space="preserve"><value>Старый и новый порты остаются доступны на время проверки. После окончательных изменений приложение повторно проверяет ключ и нужные права.</value></data>
+<data name="BuildPlan" xml:space="preserve"><value>Проверить параметры и построить план</value></data>
+<data name="PreviewHeading" xml:space="preserve"><value>Команды и откат</value></data>
+<data name="PreviewHint" xml:space="preserve"><value>Проверьте каждый шаг. Облачный файрвол и внешние сетевые правила нужно подготовить отдельно.</value></data>
+<data name="EmptyPlan" xml:space="preserve"><value>Сначала выполните аудит и постройте план.</value></data>
+<data name="ApplyPlan" xml:space="preserve"><value>Применить проверенный план…</value></data>
+<data name="ApplyHeading" xml:space="preserve"><value>Выполнение и результат</value></data>
+<data name="Cancel" xml:space="preserve"><value>Отменить с откатом</value></data>
+<data name="Rollback" xml:space="preserve"><value>Откатить последнюю транзакцию…</value></data>
+<data name="ExportReport" xml:space="preserve"><value>Экспортировать отчёт…</value></data>
+<data name="LogHint" xml:space="preserve"><value>Журнал содержит этапы и результат. Секретные данные в журнал не включаются.</value></data>
+<data name="BansHeading" xml:space="preserve"><value>Блокировки fail2ban</value></data>
+<data name="BansHint" xml:space="preserve"><value>Работа с jail sshhardener-sshd. Для разблокировки введите точный IP-адрес.</value></data>
+<data name="RefreshBans" xml:space="preserve"><value>Обновить список</value></data>
+<data name="Unban" xml:space="preserve"><value>Разблокировать IP</value></data>
+<data name="BanIp" xml:space="preserve"><value>IP-адрес</value></data>
+<data name="Language" xml:space="preserve"><value>RU / EN</value></data>
+<data name="Theme" xml:space="preserve"><value>Тема</value></data>
+<data name="Ready" xml:space="preserve"><value>Готово к подключению</value></data>
+<data name="Connecting" xml:space="preserve"><value>Подключение и проверка хоста…</value></data>
+<data name="Auditing" xml:space="preserve"><value>Аудит сервера…</value></data>
+<data name="Connected" xml:space="preserve"><value>Аудит завершён</value></data>
+<data name="PlanReady" xml:space="preserve"><value>План готов к проверке</value></data>
+<data name="Applying" xml:space="preserve"><value>Применение изменений…</value></data>
+<data name="Failed" xml:space="preserve"><value>Операция остановлена</value></data>
+<data name="ConfirmHost" xml:space="preserve"><value>Проверьте отпечаток хоста по независимому доверенному каналу. Доверять этому ключу?</value></data>
+<data name="ConfirmApply" xml:space="preserve"><value>Будут изменены настройки сервера. Новый порт открыт в облачном файрволе, план просмотрен и есть аварийный доступ через консоль провайдера?</value></data>
+<data name="ConfirmRisk" xml:space="preserve"><value>Выбран бессрочный бан или NOPASSWD sudo. Вы понимаете последствия и проверили адрес администратора в белом списке?</value></data>
+<data name="ConfirmRollback" xml:space="preserve"><value>Восстановить настройки из последней транзакции? Текущее подключение может прерваться.</value></data>
+<data name="Error" xml:space="preserve"><value>Ошибка</value></data>
+<data name="ProfileSaved" xml:space="preserve"><value>Профиль сохранён без паролей.</value></data>
+<data name="KeyGenerated" xml:space="preserve"><value>Пара ключей создана. Сохраните оба файла и парольную фразу в безопасном месте.</value></data>
+<data name="NoConnection" xml:space="preserve"><value>Сначала подключитесь к серверу.</value></data>
+<data name="StaleConnection" xml:space="preserve"><value>Параметры подключения изменились. Подключитесь заново.</value></data>
+<data name="StalePlan" xml:space="preserve"><value>Параметры изменились. Постройте план заново.</value></data>
+<data name="OperationCancelled" xml:space="preserve"><value>Операция отменена. Проверьте результат серверного отката.</value></data>
+<data name="KeyExists" xml:space="preserve"><value>Файл уже существует. Выберите новое имя.</value></data>
+<data name="PortInvalid" xml:space="preserve"><value>Порт должен быть целым числом от 1 до 65535.</value></data>
+<data name="NumberInvalid" xml:space="preserve"><value>Проверьте числовые параметры.</value></data>
+<data name="ReportSaved" xml:space="preserve"><value>Отчёт сохранён.</value></data>
+<data name="NoAudit" xml:space="preserve"><value>Для отчёта необходим аудит сервера.</value></data>
+<data name="Disconnected" xml:space="preserve"><value>Не подключено</value></data>
+<data name="Unknown" xml:space="preserve"><value>Неизвестно</value></data>
+<data name="CloseBusy" xml:space="preserve"><value>Изменения ещё выполняются. Сначала отмените операцию и дождитесь результата отката.</value></data>
+<data name="AuditSummary" xml:space="preserve"><value>ОС / OpenSSH / Firewall / Init</value></data>
+<data name="ValidationNote" xml:space="preserve"><value>Поддержка отдельных модулей определяется при построении плана. Неподдерживаемые сценарии блокируются.</value></data>
+<data name="PlanBusy" xml:space="preserve"><value>Дождитесь завершения текущей операции.</value></data>
+<data name="PlanConnectRequired" xml:space="preserve"><value>Подключитесь к серверу и выполните аудит.</value></data>
+<data name="PlanReconnectRequired" xml:space="preserve"><value>Данные подключения изменены. Подключитесь заново и повторите аудит.</value></data>
+<data name="PlanAuditRequired" xml:space="preserve"><value>Выполните аудит сервера перед построением плана.</value></data>
+<data name="PlanAdminRequired" xml:space="preserve"><value>Права root/sudo для текущего подключения не подтверждены. На вкладке «Подключение» укажите учётную запись с правами sudo и пароль sudo, если он нужен, затем подключитесь заново. Галочка «Предоставить sudo» относится к новому пользователю.</value></data>
+<data name="AuditAdminVerified" xml:space="preserve"><value>Права администратора подтверждены.</value></data>
+<data name="AuditReadOnly" xml:space="preserve"><value>Аудит выполнен в режиме просмотра: права root/sudo не подтверждены. Построение и применение плана недоступны.</value></data>
+<data name="AuditReadOnlyStatus" xml:space="preserve"><value>Аудит завершён · только просмотр (нет root/sudo)</value></data>
+<data name="SavedConnections" xml:space="preserve"><value>Сохранённые подключения</value></data>
+<data name="EmptyProfiles" xml:space="preserve"><value>Сохраните параметры подключения, чтобы быстро подключаться к этому серверу в следующий раз. Пароли в профиль не записываются.</value></data>
+<data name="EmptyBans" xml:space="preserve"><value>Подключитесь к серверу и нажмите «Обновить список», чтобы получить блокировки jail sshhardener-sshd.</value></data>
+<data name="OperationHistory" xml:space="preserve"><value>История операций</value></data>
+<data name="OperationHistoryHint" xml:space="preserve"><value>Выберите операцию, подключитесь к серверу и проверьте её состояние. Пароли вводятся заново.</value></data>
+<data name="UseOriginalConnection" xml:space="preserve"><value>Исходное подключение</value></data>
+<data name="UseNewConnection" xml:space="preserve"><value>Новое подключение</value></data>
+<data name="CheckOperation" xml:space="preserve"><value>Проверить состояние</value></data>
+<data name="HistoryEmpty" xml:space="preserve"><value>Операций пока нет. После применения здесь появится запись для восстановления.</value></data>
+<data name="HistoryNotChecked" xml:space="preserve"><value>Состояние на сервере не проверено. Подключитесь и нажмите «Проверить состояние».</value></data>
+<data name="HistoryLastConfirmed" xml:space="preserve"><value>Последнее подтверждение: {0}, {1}. Требуется повторная проверка.</value></data>
+<data name="HistoryVerified" xml:space="preserve"><value>Проверено на сервере: {0} · {1}</value></data>
+<data name="HistoryDifferentServer" xml:space="preserve"><value>Подключение не соответствует выбранной операции. Используйте её исходные или новые параметры.</value></data>
+<data name="HistoryLoadFailed" xml:space="preserve"><value>Не удалось прочитать историю операций. Новые изменения не будут применены, пока запись истории невозможна.</value></data>
+<data name="HistorySaveFailed" xml:space="preserve"><value>Не удалось обновить локальную историю. Результат операции на сервере от этого не меняется.</value></data>
+<data name="HistorySaved" xml:space="preserve"><value>Сведения об операции сохранены без паролей и парольных фраз.</value></data>
+<data name="HistoryCredentialsRequired" xml:space="preserve"><value>Параметры подставлены. Введите пароль или парольную фразу и подключитесь.</value></data>
+<data name="HistoryChecking" xml:space="preserve"><value>Проверяется состояние операции…</value></data>
+<data name="HistoryCheckFailed" xml:space="preserve"><value>Состояние операции не подтверждено. Проверьте подключение и повторите запрос.</value></data>
+<data name="HistoryRollbackUnavailable" xml:space="preserve"><value>Откат недоступен для текущего состояния или операция не является последним применением.</value></data>
+<data name="HistoryHostChanged" xml:space="preserve"><value>Ключ сервера не соответствует сохранённой операции. Подключение остановлено.</value></data>
+<data name="HistoryRollbackConfirm" xml:space="preserve"><value>Операция {0}&#10;Сервер: {1}&#10;Исходный порт: {2}, пользователь: {3}&#10;&#10;Откат может отключить текущий доступ. Продолжить?</value></data>
+<data name="HistoryStateUnknown" xml:space="preserve"><value>Неизвестно</value></data>
+<data name="HistoryStateNotFound" xml:space="preserve"><value>Операция не найдена</value></data>
+<data name="HistoryStatePending" xml:space="preserve"><value>Ожидает завершения</value></data>
+<data name="HistoryStateRollingBack" xml:space="preserve"><value>Идёт откат</value></data>
+<data name="HistoryStateRecoveryDeferred" xml:space="preserve"><value>Откат отложен</value></data>
+<data name="HistoryStateRecoveryFailed" xml:space="preserve"><value>Ошибка отката</value></data>
+<data name="HistoryStateRolledBack" xml:space="preserve"><value>Откат выполнен</value></data>
+<data name="HistoryStateCommitted" xml:space="preserve"><value>Изменения применены</value></data>
+<data name="EmptyLog" xml:space="preserve"><value>Здесь появятся этапы выполнения и результат проверки. Пока изменения не применялись.</value></data>
+<data name="RollbackComplete" xml:space="preserve"><value>Сервер подтвердил ручной откат изменений.</value></data>
+<data name="BulkTitle" xml:space="preserve"><value>Массовая настройка серверов</value></data>
+<data name="BulkReady" xml:space="preserve"><value>Импортируйте серверы, выполните аудит и проверьте план каждого узла.</value></data>
+<data name="BulkIndependentTransactions" xml:space="preserve"><value>Каждый сервер изменяется отдельной транзакцией со своим откатом. Общего атомарного отката всех серверов нет. При остановке уже запущенные операции завершают проверку или восстановление.</value></data>
+<data name="BulkPolicySummary" xml:space="preserve"><value>Настройки взяты из основной формы. Новый пользователь, порт, доступ и sudo:</value></data>
+<data name="BulkSharedKey" xml:space="preserve"><value>На выбранных серверах будет установлен один явно выбранный ключ:</value></data>
+<data name="BulkInvalidKey" xml:space="preserve"><value>Проверьте соответствие нового закрытого и открытого ключа в основной форме.</value></data>
+<data name="BulkYes" xml:space="preserve"><value>да</value></data>
+<data name="BulkNo" xml:space="preserve"><value>нет</value></data>
+<data name="BulkImportHeading" xml:space="preserve"><value>Серверы из CSV или сохранённых профилей</value></data>
+<data name="BulkCsvHint" xml:space="preserve"><value>CSV: host обязателен; port, username, privateKeyPath, id, displayName необязательны. Пароли и секреты MFA в CSV запрещены. Повтор одного хоста, даже с другим портом, запрещён.</value></data>
+<data name="BulkBrowseCsv" xml:space="preserve"><value>Открыть CSV…</value></data>
+<data name="BulkImportCsv" xml:space="preserve"><value>Импортировать CSV</value></data>
+<data name="BulkImportProfiles" xml:space="preserve"><value>Загрузить сохранённые профили</value></data>
+<data name="BulkImported" xml:space="preserve"><value>Загружено серверов:</value></data>
+<data name="BulkHost" xml:space="preserve"><value>Название</value></data>
+<data name="BulkState" xml:space="preserve"><value>Состояние</value></data>
+<data name="BulkDetail" xml:space="preserve"><value>Текущий этап / результат</value></data>
+<data name="BulkConcurrency" xml:space="preserve"><value>Одновременно:</value></data>
+<data name="BulkStopOnFailure" xml:space="preserve"><value>Остановить запуск новых узлов при ошибке</value></data>
+<data name="BulkPreview" xml:space="preserve"><value>Аудит и планы</value></data>
+<data name="BulkApply" xml:space="preserve"><value>Применить проверенные планы</value></data>
+<data name="BulkCancel" xml:space="preserve"><value>Отмена</value></data>
+<data name="BulkContinue" xml:space="preserve"><value>Продолжить</value></data>
+<data name="BulkWaiting" xml:space="preserve"><value>Ожидает аудита</value></data>
+<data name="BulkRunning" xml:space="preserve"><value>Выполняется</value></data>
+<data name="BulkFailed" xml:space="preserve"><value>Ошибка</value></data>
+<data name="BulkPreviewReady" xml:space="preserve"><value>План готов</value></data>
+<data name="BulkReviewHost" xml:space="preserve"><value>Проверьте аудит и план выбранного сервера ниже.</value></data>
+<data name="BulkReviewAll" xml:space="preserve"><value>Проверьте план каждого узла. Применение повторно запросит учётные данные отдельно для каждого сервера.</value></data>
+<data name="BulkPreviewFailed" xml:space="preserve"><value>Не все планы готовы. Проверьте учётные данные и требования сервера; повторите аудит.</value></data>
+<data name="BulkAuditLabel" xml:space="preserve"><value>АУДИТ ДО ИЗМЕНЕНИЙ</value></data>
+<data name="BulkPlanLabel" xml:space="preserve"><value>ПЛАН И ОТКАТ ЭТОГО СЕРВЕРА</value></data>
+<data name="BulkSelectHost" xml:space="preserve"><value>Выберите сервер, чтобы просмотреть его аудит и план.</value></data>
+<data name="BulkCancelling" xml:space="preserve"><value>Останавливаем запуск новых узлов. Ожидаем завершения проверки или отката уже запущенных операций…</value></data>
+<data name="BulkCancelled" xml:space="preserve"><value>Операция отменена. Проверяйте отдельный результат каждого сервера.</value></data>
+<data name="BulkFinished" xml:space="preserve"><value>Обработка завершена.</value></data>
+<data name="BulkInputFailed" xml:space="preserve"><value>Не удалось импортировать серверы: проверьте формат CSV, адреса, уникальность хостов и ограничение 256 узлов.</value></data>
+<data name="BulkOperationFailed" xml:space="preserve"><value>Не удалось завершить операцию. Результаты отдельных серверов и их история сохраняются отдельно.</value></data>
+<data name="BulkStateSkipped" xml:space="preserve"><value>Пропущен</value></data>
+<data name="BulkStateFailed" xml:space="preserve"><value>Остановлен до изменений</value></data>
+<data name="BulkStateCommitted" xml:space="preserve"><value>Применение подтверждено</value></data>
+<data name="BulkStateRolledBack" xml:space="preserve"><value>Откат подтверждён</value></data>
+<data name="BulkStateUnconfirmed" xml:space="preserve"><value>Результат не подтверждён</value></data>
+<data name="BulkCredentialsTitle" xml:space="preserve"><value>Доступ к отдельному серверу</value></data>
+<data name="BulkCredentialsHint" xml:space="preserve"><value>Введите данные только этого сервера. Они остаются в памяти на время подключения и не сохраняются в профилях или CSV.</value></data>
+<data name="BulkSourceKey" xml:space="preserve"><value>Парольная фраза исходного ключа (пусто, если ключ не зашифрован):</value></data>
+<data name="BulkSourcePassword" xml:space="preserve"><value>Пароль исходного SSH-пользователя:</value></data>
+<data name="BulkSourceSudo" xml:space="preserve"><value>Пароль sudo исходного пользователя (пусто для root / NOPASSWD):</value></data>
+<data name="BulkTargetPassword" xml:space="preserve"><value>Пароль целевой учётной записи для sudo:</value></data>
+<data name="BulkCredentialRequired" xml:space="preserve"><value>Введите пароль SSH или выберите профиль / CSV с исходным ключом.</value></data>
+<data name="BulkTargetPasswordHint" xml:space="preserve"><value>Введите пароль целевой учётной записи. Для нового пользователя нужно не менее 12 символов.</value></data>
+<data name="BulkTrustTitle" xml:space="preserve"><value>Проверка нового ключа сервера</value></data>
+<data name="BulkTrustHint" xml:space="preserve"><value>Сверьте отпечаток по независимому каналу. Доверять этому серверу?</value></data>
+<data name="BulkApplyConfirmation" xml:space="preserve"><value>Применить просмотренные планы к выбранным серверам? Количество:</value></data>
+<data name="MfaCodeTitle" xml:space="preserve"><value>Одноразовый код SSH</value></data>
+<data name="MfaCodeHint" xml:space="preserve"><value>Введите текущий шестизначный код из приложения-аутентификатора или восьмизначный резервный код. Код не сохраняется.</value></data>
+<data name="MfaInvalidCode" xml:space="preserve"><value>Код не подходит. Проверьте аккаунт в аутентификаторе и время на устройствах.</value></data>
+<data name="MfaEnrollmentTitle" xml:space="preserve"><value>Подключение двухфакторного входа</value></data>
+<data name="MfaEnrollmentHint" xml:space="preserve"><value>Добавьте отдельную запись в Google Authenticator или совместимое приложение: TOTP, SHA-1, 6 цифр, период 30 секунд. Секрет и резервные коды показаны только в этом окне; сохраните их в безопасном месте.</value></data>
+<data name="MfaSecretLabel" xml:space="preserve"><value>Ключ для ручного ввода:</value></data>
+<data name="MfaUriLabel" xml:space="preserve"><value>Ссылка otpauth для совместимого аутентификатора:</value></data>
+<data name="MfaRecoveryLabel" xml:space="preserve"><value>Одноразовые резервные коды:</value></data>
+<data name="MfaRecoverySaved" xml:space="preserve"><value>Резервные коды сохранены в безопасном месте</value></data>
+<data name="MfaConfirmCode" xml:space="preserve"><value>Подтвердите текущий код из добавленной записи:</value></data>
+<data name="MfaSaveRecoveryFirst" xml:space="preserve"><value>Сначала сохраните резервные коды и отметьте подтверждение.</value></data>
+<data name="BulkTargetVerificationPassword" xml:space="preserve"><value>Пароль существующей целевой учётной записи для проверки sudo (пусто для NOPASSWD):</value></data>
+<data name="SftpTitle" xml:space="preserve"><value>SFTP · Файлы сервера</value></data>
+<data name="SftpHint" xml:space="preserve"><value>Вход с правами выбранного пользователя. Пароли не сохраняются. Удаление папок доступно только для пустых папок.</value></data>
+<data name="SftpConnect" xml:space="preserve"><value>Подключиться по SFTP</value></data>
+<data name="SftpUseMfa" xml:space="preserve"><value>Одноразовый код (MFA)</value></data>
+<data name="SftpCancel" xml:space="preserve"><value>Отмена</value></data>
+<data name="SftpContinue" xml:space="preserve"><value>Продолжить</value></data>
+<data name="SftpGo" xml:space="preserve"><value>Открыть путь</value></data>
+<data name="SftpUp" xml:space="preserve"><value>Вверх</value></data>
+<data name="SftpRefresh" xml:space="preserve"><value>Обновить</value></data>
+<data name="SftpOpen" xml:space="preserve"><value>Открыть папку</value></data>
+<data name="SftpUpload" xml:space="preserve"><value>Загрузить на сервер</value></data>
+<data name="SftpDownload" xml:space="preserve"><value>Скачать</value></data>
+<data name="SftpNewFolder" xml:space="preserve"><value>Новая папка</value></data>
+<data name="SftpRename" xml:space="preserve"><value>Переименовать</value></data>
+<data name="SftpDelete" xml:space="preserve"><value>Удалить</value></data>
+<data name="SftpName" xml:space="preserve"><value>Имя</value></data>
+<data name="SftpType" xml:space="preserve"><value>Тип</value></data>
+<data name="SftpSize" xml:space="preserve"><value>Размер</value></data>
+<data name="SftpModified" xml:space="preserve"><value>Изменён</value></data>
+<data name="SftpFolder" xml:space="preserve"><value>Папка</value></data>
+<data name="SftpFile" xml:space="preserve"><value>Файл</value></data>
+<data name="SftpLink" xml:space="preserve"><value>Ссылка</value></data>
+<data name="SftpDisconnected" xml:space="preserve"><value>Введите данные и подключитесь к серверу.</value></data>
+<data name="SftpConnecting" xml:space="preserve"><value>Подключение по SFTP…</value></data>
+<data name="SftpWorking" xml:space="preserve"><value>Выполняется операция…</value></data>
+<data name="SftpTransferring" xml:space="preserve"><value>Передача файла…</value></data>
+<data name="SftpReady" xml:space="preserve"><value>Готово.</value></data>
+<data name="SftpCancelled" xml:space="preserve"><value>Операция отменена.</value></data>
+<data name="SftpDenied" xml:space="preserve"><value>Сервер запретил операцию. Проверьте права выбранного пользователя.</value></data>
+<data name="SftpHostChanged" xml:space="preserve"><value>Ключ сервера изменился. Проверьте его через доверенную консоль.</value></data>
+<data name="SftpFailed" xml:space="preserve"><value>Операция не завершена. Проверьте подключение, путь и права доступа; повторите подключение при необходимости.</value></data>
+<data name="SftpOverwrite" xml:space="preserve"><value>Файл уже существует. Заменить его?</value></data>
+<data name="SftpDeleteConfirm" xml:space="preserve"><value>Удалить выбранный объект? Папка должна быть пустой. Это действие нельзя отменить.</value></data>
+<data name="SftpEnterName" xml:space="preserve"><value>Введите одно имя, без пути:</value></data>
+<data name="SftpKeyFilter" xml:space="preserve"><value>Приватные ключи (*.ppk;*.pem;*.key)|*.ppk;*.pem;*.key|Все файлы (*.*)|*.*</value></data>
+<data name="CreateKey" xml:space="preserve"><value>Создать ключ</value></data>
+<data name="KeyAlgorithm" xml:space="preserve"><value>Алгоритм нового ключа</value></data>
+<data name="KeyAlgorithmHint" xml:space="preserve"><value>Ed25519 — современный компактный ключ; RSA 4096 — для систем, которым нужен RSA. Формат защищённого файла выбирается при сохранении.</value></data>
+<data name="AccessOpenSftp" xml:space="preserve"><value>Файлы по SFTP</value></data>
+<data name="AccessOpenBulk" xml:space="preserve"><value>Несколько серверов</value></data>
+<data name="AccessHeading" xml:space="preserve"><value>Доступ целевой учётной записи</value></data>
+<data name="AccessRoleHint" xml:space="preserve"><value>Выберите доступ для указанного пользователя. Для новой учётной записи явно задайте политику sudo.</value></data>
+<data name="AccessRole" xml:space="preserve"><value>Тип доступа</value></data>
+<data name="AccessSudoRole" xml:space="preserve"><value>Права sudo</value></data>
+<data name="AccessShell" xml:space="preserve"><value>SSH: командная оболочка</value></data>
+<data name="AccessSftpOnly" xml:space="preserve"><value>Только SFTP, без оболочки</value></data>
+<data name="AccessSudoLegacy" xml:space="preserve"><value>Существующие права администратора</value></data>
+<data name="AccessSudoNone" xml:space="preserve"><value>Без sudo</value></data>
+<data name="AccessSudoPassword" xml:space="preserve"><value>Администратор: sudo с паролем</value></data>
+<data name="AccessSudoPasswordless" xml:space="preserve"><value>Администратор: sudo без пароля</value></data>
+<data name="AccessSudoRestricted" xml:space="preserve"><value>Только выбранные службы</value></data>
+<data name="AccessTargetPassword" xml:space="preserve"><value>Пароль целевой учётной записи для sudo</value></data>
+<data name="AccessTargetPasswordHint" xml:space="preserve"><value>Для нового пользователя с sudo по паролю — не менее 12 символов. Для существующего пользователя укажите его действующий пароль; в режиме существующих прав оставьте поле пустым для NOPASSWD. Пароль не сохраняется.</value></data>
+<data name="AccessRestrictedServices" xml:space="preserve"><value>Точные имена служб systemd, по одному на строке (например, nginx.service)</value></data>
+<data name="AccessRestrictedRestart" xml:space="preserve"><value>Разрешить перезапуск указанных служб</value></data>
+<data name="AccessRestrictedHint" xml:space="preserve"><value>Разрешены проверка состояния и просмотр статуса выбранных служб. Перезапуск службы выполняется от root: её исполняемые файлы и настройки должны быть недоступны этому пользователю для записи. Произвольные команды и маски не допускаются.</value></data>
+<data name="AccessSftpReadOnly" xml:space="preserve"><value>SFTP только для чтения</value></data>
+<data name="AccessSftpHint" xml:space="preserve"><value>SFTP-пользователь ограничен отдельным каталогом /uploads внутри chroot; оболочка, терминал и перенаправление соединений отключаются. Права sudo для него не выдаются.</value></data>
+<data name="AccessSourceAdministratorHint" xml:space="preserve"><value>Для SFTP или ограниченной учётной записи подключитесь отдельным администратором по ключу. Перед завершением программа проверит его новый вход и права root на итоговом порту.</value></data>
+<data name="AccessMfaHeading" xml:space="preserve"><value>Двухфакторный вход по SSH</value></data>
+<data name="AccessEnableTotp" xml:space="preserve"><value>Требовать ключ и одноразовый код TOTP</value></data>
+<data name="AccessMfaHint" xml:space="preserve"><value>MFA применяется к выбранному пользователю. Добавьте отдельную запись в аутентификатор и подтвердите код. Секрет и резервные коды видны только в окне настройки; сохраните резервные коды перед закрытием. В массовой настройке каждый сервер получает отдельный секрет. Снятие флажка сохраняет ранее настроенную 2FA; её отключение и смена секрета здесь не выполняются.</value></data>
+<data name="AccessMfaConfigure" xml:space="preserve"><value>Настроить аутентификатор…</value></data>
+<data name="AccessMfaNotEnrolled" xml:space="preserve"><value>Аутентификатор ещё не подтверждён.</value></data>
+<data name="AccessMfaEnrolled" xml:space="preserve"><value>Аутентификатор подтверждён. Секреты не включаются в план, отчёт или профиль.</value></data>
+<data name="AccessGlobalPasswordHint" xml:space="preserve"><value>Отключение парольного входа — общая политика SSH-сервера и может затронуть других пользователей. TOTP добавляется только выбранной учётной записи.</value></data>
+</root>

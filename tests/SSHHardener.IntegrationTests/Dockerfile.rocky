@@ -1,0 +1,6 @@
+FROM rockylinux:9
+RUN dnf install -y openssh-server sudo shadow-utils && dnf clean all
+COPY prepare.sh /prepare.sh
+RUN /bin/sh /prepare.sh
+COPY entrypoint.sh /entrypoint.sh
+ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]

@@ -1,0 +1,23 @@
+services:
+  debian:
+    build:
+      context: .
+      dockerfile: Dockerfile.debian
+      args:
+        IMAGE: debian:12
+    ports: ["127.0.0.1:22412:22"]
+    volumes: ["../../artifacts/integration/fixture.pem.pub:/fixture.pub:ro"]
+  ubuntu:
+    build:
+      context: .
+      dockerfile: Dockerfile.debian
+      args:
+        IMAGE: ubuntu:24.04
+    ports: ["127.0.0.1:22424:22"]
+    volumes: ["../../artifacts/integration/fixture.pem.pub:/fixture.pub:ro"]
+  rocky:
+    build:
+      context: .
+      dockerfile: Dockerfile.rocky
+    ports: ["127.0.0.1:22490:22"]
+    volumes: ["../../artifacts/integration/fixture.pem.pub:/fixture.pub:ro"]

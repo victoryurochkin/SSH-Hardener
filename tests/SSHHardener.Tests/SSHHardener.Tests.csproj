@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/SSHHardener.Core/SSHHardener.Core.csproj" />
+    <ProjectReference Include="../../src/SSHHardener.Profiles/SSHHardener.Profiles.csproj" />
+    <ProjectReference Include="../../src/SSHHardener.Ssh/SSHHardener.Ssh.csproj" />
+    <ProjectReference Include="../../src/SSHHardener.Reports/SSHHardener.Reports.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="Fixtures/managed-firewall-fixture.py" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

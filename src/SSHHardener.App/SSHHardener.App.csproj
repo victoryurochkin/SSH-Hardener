@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\ShieldLock.ico</ApplicationIcon>
+    <RuntimeFrameworkVersion Condition="'$(SelfContained)' == 'true'">10.0.14</RuntimeFrameworkVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+    <ProjectReference Include="../SSHHardener.Core/SSHHardener.Core.csproj" />
+    <ProjectReference Include="../SSHHardener.Ssh/SSHHardener.Ssh.csproj" />
+    <ProjectReference Include="../SSHHardener.Profiles/SSHHardener.Profiles.csproj" />
+    <ProjectReference Include="../SSHHardener.Reports/SSHHardener.Reports.csproj" />
+  </ItemGroup>
+</Project>
