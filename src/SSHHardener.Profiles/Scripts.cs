@@ -58,6 +58,41 @@ internal static class Scripts
             ufw --force delete "$number" || return 1
           done
         }
+        wait_for_ssh_listeners() {
+          phase="$1"
+          new_expectation=present
+          old_expectation=present
+          if [ "$phase" = recovery ] && [ "$oldport" != "$port" ]; then new_expectation=absent; fi
+          if [ "$phase" = final ] && [ "$close_old" = yes ] && [ "$oldport" != "$port" ]; then old_expectation=absent; fi
+          attempt=0
+          while :; do
+            if new_listeners=$(ss -H -ltn "sport = :$port"); then :; else
+              printf 'TCP listener query failed: phase=%s service=%s.service port=%s\n%s\n' "$phase" "$service" "$port" "$new_listeners" >&2
+              return 1
+            fi
+            if [ "$oldport" = "$port" ]; then old_listeners="$new_listeners"; else
+              if old_listeners=$(ss -H -ltn "sport = :$oldport"); then :; else
+                printf 'TCP listener query failed: phase=%s service=%s.service port=%s\n%s\n' "$phase" "$service" "$oldport" "$old_listeners" >&2
+                return 1
+              fi
+            fi
+            service_ready=no
+            if systemctl is-active --quiet "$service.service"; then service_ready=yes; fi
+            new_ready=no
+            if [ "$new_expectation" = present ] && [ -n "$new_listeners" ]; then new_ready=yes; fi
+            if [ "$new_expectation" = absent ] && [ -z "$new_listeners" ]; then new_ready=yes; fi
+            old_ready=no
+            if [ "$old_expectation" = present ] && [ -n "$old_listeners" ]; then old_ready=yes; fi
+            if [ "$old_expectation" = absent ] && [ -z "$old_listeners" ]; then old_ready=yes; fi
+            if [ "$new_ready" = yes ] && [ "$service_ready" = yes ] && [ "$old_ready" = yes ]; then return 0; fi
+            [ "$attempt" -lt 15 ] || break
+            sleep 1
+            attempt=$((attempt + 1))
+          done
+          printf 'SSH listener readiness timed out: phase=%s service=%s.service active=%s new-port=%s expected-new=%s old-port=%s expected-old=%s\n' "$phase" "$service" "$service_ready" "$port" "$new_expectation" "$oldport" "$old_expectation" >&2
+          printf 'New-port ss output:\n%s\nOld-port ss output:\n%s\n' "$new_listeners" "$old_listeners" >&2
+          return 1
+        }
         guard() {
           [ "$(id -u)" = 0 ] || fail 'Root privilege is required.'
           [ ! -L "$base" ] && [ ! -L "$tx" ] || fail 'Unsafe transaction path.'
@@ -74,7 +109,7 @@ internal static class Scripts
         [ "$(id -u)" = 0 ] || fail 'Root privilege is required.'
         [ -d /run/systemd/system ] || fail 'systemd is required.'
         [ -x /usr/sbin/sshd ] || fail 'Expected /usr/sbin/sshd is unavailable.'
-        for cmd in flock install stat readlink sha256sum awk grep cp mv systemctl getent ss runuser sync; do command -v "$cmd" >/dev/null 2>&1 || fail "Missing required command: $cmd"; done
+        for cmd in flock install stat readlink sha256sum awk grep cp mv systemctl getent ss runuser sync sleep; do command -v "$cmd" >/dev/null 2>&1 || fail "Missing required command: $cmd"; done
         for unit in ssh.socket sshd.socket; do
           if systemctl is-active --quiet "$unit" || systemctl is-enabled --quiet "$unit" 2>/dev/null; then fail 'SSH socket activation is unsupported.'; fi
         done
@@ -371,8 +406,7 @@ internal static class Scripts
           sha256sum /etc/ssh/sshd_config | awk '{print $1}' > "$tx/main.sha256"
           /usr/sbin/sshd -t
           systemctl reload "$service.service"
-          systemctl is-active --quiet "$service.service"
-          ss -H -ltn "sport = :$port" | grep -q . || fail 'sshd did not begin listening on the new port.'
+          wait_for_ssh_listeners "$phase" || fail 'sshd did not reach the expected listener state within 15 seconds; recovery remains armed.'
         }
         guard
 
@@ -514,7 +548,9 @@ internal static class Scripts
             then failed=1; fi
           else failed=1; fi
         fi
-        if [ "${1:-}" != boot ] && [ -f "$tx/main-changed" ]; then /usr/sbin/sshd -t && systemctl reload "$service.service" || failed=1; fi
+        if [ "${1:-}" != boot ] && [ -f "$tx/main-changed" ]; then
+          /usr/sbin/sshd -t && systemctl reload "$service.service" && wait_for_ssh_listeners recovery || failed=1
+        fi
         if [ "$failed" = 0 ]; then
           printf '%s\n' rolled-back > "$tx/state"
           sync -f "$tx/state"
