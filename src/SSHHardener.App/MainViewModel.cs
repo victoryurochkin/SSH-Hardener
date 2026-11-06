@@ -28,6 +28,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private HardeningPlan? _plan;
     private HardeningResult? _result;
     private CancellationTokenSource? _operation;
+    private TaskCompletionSource? _operationCompletion;
+    private bool _uiFailed;
     private bool _connectionChanged;
     private bool _busy;
     private string _host = "", _port = "22", _username = "root", _privateKey = "";
@@ -86,7 +88,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public ObservableCollection<string> Log { get; } = [];
     public string[] RootPolicies { get; } = ["prohibit-password", "no"];
     public bool Busy { get => _busy; private set { SetProperty(ref _busy, value); OnPropertyChanged(nameof(Idle)); NotifyAvailability(); } }
-    public bool Idle => !Busy;
+    public bool Idle => !Busy && !_uiFailed;
     private bool SessionAvailable => _session is not null && !_connectionChanged;
     public bool CanConnect => Idle && !string.IsNullOrWhiteSpace(Host) && !string.IsNullOrWhiteSpace(Username) && int.TryParse(Port, out var port) && port is > 0 and < 65536;
     public bool CanAudit => Idle && SessionAvailable;
@@ -204,8 +206,10 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
     private async Task RunAsync(Func<CancellationToken, Task> action)
     {
-        if (Busy) return;
+        if (Busy || _uiFailed) return;
         Busy = true;
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _operationCompletion = completion;
         using var cancellation = new CancellationTokenSource();
         _operation = cancellation;
         var actionName = action.Method.Name;
@@ -218,16 +222,34 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         catch (OperationCanceledException)
         {
             Serilog.Log.Information("Operation {Operation} cancelled", actionName);
+            if (_uiFailed) return;
             Status = L["OperationCancelled"]; AddLog(Status);
         }
         catch (Exception ex)
         {
             Serilog.Log.Warning("Operation {Operation} failed with {FailureType}", actionName, ex.GetType().Name);
+            if (_uiFailed) return;
             Status = L["Failed"];
             AddLog(ex.Message);
             MessageBox.Show(ex.Message, L["Error"], MessageBoxButton.OK, MessageBoxImage.Warning);
         }
-        finally { _operation = null; Busy = false; }
+        finally
+        {
+            _operation = null;
+            try { Busy = false; }
+            finally { _operationCompletion = null; completion.TrySetResult(); }
+        }
+    }
+
+    public Task StopForUiFailureAsync()
+    {
+        _uiFailed = true;
+        try { _operation?.Cancel(); }
+        catch (AggregateException error)
+        {
+            Serilog.Log.Error("UI failure cancellation callback failed with {FailureType}", error.GetType().Name);
+        }
+        return _operationCompletion?.Task ?? Task.CompletedTask;
     }
 
     private async Task ConnectAsync(CancellationToken ct)
@@ -322,14 +344,23 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         _executedPlan = plan;
         _executedIdentityKey = session.Identity.KeyBase64;
         _result = null;
-        var progress = new Progress<OperationProgress>(value =>
+        IProgress<OperationProgress> uiProgress = new Progress<OperationProgress>(value =>
         {
-            Serilog.Log.Information("Transaction stage {Stage} at {Percent} percent", value.Step, value.Percent);
+            if (_uiFailed) return;
             Progress = value.Percent; Status = value.Message; AddLog($"{value.Step}: {value.Message}");
+        });
+        // Record stage starts before queuing UI work, so a stalled dispatcher cannot hide later steps.
+        var progress = new InlineProgress<OperationProgress>(value =>
+        {
+            Serilog.Log.Information("Transaction {TransactionId} stage {Stage} at {Percent} percent", plan.TransactionId, value.Step, value.Percent);
+            uiProgress.Report(value);
         });
         try
         {
             _result = await _engine.ApplyAsync(session, plan, progress, ct);
+            Serilog.Log.Information("Transaction {TransactionId} finished: committed={Committed}, rolledBack={RolledBack}",
+                plan.TransactionId, _result.Committed, _result.RolledBack);
+            if (_uiFailed) return;
             Status = _result.Message;
             AddLog(Status);
         }
@@ -437,6 +468,11 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private static string? NullIfEmpty(string? value) => string.IsNullOrEmpty(value) ? null : value;
     private bool Confirm(string text) => MessageBox.Show(text, "SSH Hardener", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
     private void AddLog(string value) { Log.Add($"{DateTimeOffset.Now:HH:mm:ss}  {value}"); while (Log.Count > 1000) Log.RemoveAt(0); }
+
+    private sealed class InlineProgress<T>(Action<T> report) : IProgress<T>
+    {
+        public void Report(T value) => report(value);
+    }
 
     public async ValueTask DisposeAsync()
     {

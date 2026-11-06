@@ -1,8 +1,10 @@
 using System.ComponentModel;
+using System.Collections.Specialized;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace SSHHardener.App;
 
@@ -10,6 +12,8 @@ public partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel;
     private bool _dark;
+    private DispatcherOperation? _logScrollOperation;
+    private bool _logScrollDisposed;
 
     public MainWindow(MainViewModel viewModel)
     {
@@ -19,12 +23,57 @@ public partial class MainWindow : Window
         viewModel.ReadConnectionSecrets = () => new ConnectionSecrets(ConnectionPassword.Password, ConnectionPassphrase.Password, ConnectionSudoPassword.Password);
         viewModel.ReadNewKeyPassphrase = () => NewKeyPassphrase.Password;
         viewModel.ClearConnectionSecrets = () => { ConnectionPassword.Clear(); ConnectionPassphrase.Clear(); ConnectionSudoPassword.Clear(); };
-        viewModel.Log.CollectionChanged += (_, _) => { if (viewModel.Log.Count != 0) ActionLog.ScrollIntoView(viewModel.Log[^1]); };
+        viewModel.Log.CollectionChanged += OnLogCollectionChanged;
+        ActionLog.Loaded += OnActionLogLoaded;
+        ActionLog.Unloaded += OnActionLogUnloaded;
+        Closed += OnWindowClosed;
         Loaded += async (_, _) => await viewModel.InitializeAsync();
     }
 
     private void ConnectionSecretChanged(object sender, RoutedEventArgs e) => _viewModel?.InvalidateConnection();
     private void NewKeySecretChanged(object sender, RoutedEventArgs e) => _viewModel?.InvalidatePlan();
+
+    private void OnLogCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) => ScheduleLogScroll();
+
+    private void OnActionLogLoaded(object sender, RoutedEventArgs e) => ScheduleLogScroll();
+
+    private void OnActionLogUnloaded(object sender, RoutedEventArgs e) => CancelLogScroll();
+
+    private void ScheduleLogScroll()
+    {
+        if (_logScrollDisposed || !ActionLog.IsLoaded || !ActionLog.IsVisible ||
+            Dispatcher.HasShutdownStarted || Dispatcher.HasShutdownFinished || _viewModel.Log.Count == 0)
+            return;
+        if (_logScrollOperation is { Status: DispatcherOperationStatus.Pending or DispatcherOperationStatus.Executing })
+            return;
+
+        // Never enter item generation while ObservableCollection is notifying its listeners.
+        // One background callback runs after pending binding, render and loaded work.
+        _logScrollOperation = Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+        {
+            _logScrollOperation = null;
+            if (_logScrollDisposed || !ActionLog.IsLoaded || !ActionLog.IsVisible || _viewModel.Log.Count == 0)
+                return;
+            ActionLog.ScrollIntoView(_viewModel.Log[^1]);
+        }));
+    }
+
+    private void CancelLogScroll()
+    {
+        if (_logScrollOperation is { Status: DispatcherOperationStatus.Pending })
+            _logScrollOperation.Abort();
+        _logScrollOperation = null;
+    }
+
+    private void OnWindowClosed(object? sender, EventArgs e)
+    {
+        _logScrollDisposed = true;
+        CancelLogScroll();
+        _viewModel.Log.CollectionChanged -= OnLogCollectionChanged;
+        ActionLog.Loaded -= OnActionLogLoaded;
+        ActionLog.Unloaded -= OnActionLogUnloaded;
+        Closed -= OnWindowClosed;
+    }
 
     private void ComboBoxDropDownOpened(object? sender, EventArgs e)
     {

@@ -22,6 +22,9 @@ jobs:
         run: dotnet build -c Release --no-restore
       - name: Unit tests
         run: dotnet test tests/SSHHardener.Tests/SSHHardener.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=unit.trx"
+      - name: Verify live WPF log updates without connecting
+        timeout-minutes: 2
+        run: dotnet run --project tests/SSHHardener.UiTests/SSHHardener.UiTests.csproj -c Release --no-build --no-restore -- artifacts/ui-regression.txt
       - name: Publish unsigned portable build
         run: dotnet publish src/SSHHardener.App/SSHHardener.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishTrimmed=false -p:RestoreLockedMode=true -o artifacts/publish
       - name: Verify WPF startup without showing a window or connecting
@@ -61,5 +64,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wpf-startup-diagnostics
-          path: artifacts/startup-check.txt
+          path: |
+            artifacts/startup-check.txt
+            artifacts/ui-regression.txt
           if-no-files-found: ignore

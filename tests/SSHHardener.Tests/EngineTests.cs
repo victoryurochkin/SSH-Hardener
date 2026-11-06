@@ -79,6 +79,29 @@ public sealed class EngineTests : IDisposable
     }
 
     [Fact]
+    public async Task ObserverFailuresAfterArmingAndDuringRollbackCannotPreventConfirmedRecovery()
+    {
+        var observedStages = new List<string>();
+        var observer = new SynchronousProgress(value =>
+        {
+            observedStages.Add(value.Step);
+            if (value.Step is "provision" or "rollback") throw new InvalidOperationException("Progress observer failed.");
+        });
+        var factory = Factory();
+
+        var result = await new HardeningEngine(factory).ApplyAsync(Original(), Plan(), observer, CancellationToken.None);
+
+        Assert.Equal(new[] { "preflight", "arm-rollback", "provision", "rollback" }, observedStages);
+        Assert.Contains("original:arm-rollback", _events);
+        Assert.DoesNotContain("original:provision", _events);
+        Assert.Contains(_events, value => value.Contains("rollback.sh", StringComparison.Ordinal));
+        Assert.Empty(factory.Connections);
+        Assert.True(result.RolledBack);
+        Assert.False(result.Committed);
+        Assert.Equal("rolled-back", _state);
+    }
+
+    [Fact]
     public async Task UnreachableRecoveryIsNotReportedAsRolledBack()
     {
         var result = await new HardeningEngine(Factory(changedKey: true)).ApplyAsync(Original(failRecovery: true), Plan(), null, CancellationToken.None);
@@ -166,6 +189,11 @@ public sealed class EngineTests : IDisposable
     });
 
     public void Dispose() => File.Delete(_key);
+
+    private sealed class SynchronousProgress(Action<OperationProgress> report) : IProgress<OperationProgress>
+    {
+        public void Report(OperationProgress value) => report(value);
+    }
 
     private sealed class FakeFactory(Func<ConnectionOptions, Func<HostIdentity, Task<bool>>, int, Task<IRemoteSession>> connect) : IRemoteSessionFactory
     {

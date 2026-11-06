@@ -1,7 +1,9 @@
 using System.IO;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using SSHHardener.Core;
@@ -14,6 +16,7 @@ namespace SSHHardener.App;
 public partial class App : Application
 {
     private ServiceProvider? _services;
+    private bool _uiFailureStarted;
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -40,6 +43,7 @@ public partial class App : Application
         var selfTestFailed = false;
         DispatcherUnhandledException += (_, exception) =>
         {
+            exception.Handled = true;
             if (selfTest)
             {
                 selfTestFailed = true;
@@ -50,10 +54,31 @@ public partial class App : Application
                 Shutdown(1);
                 return;
             }
-            // Do not persist exception objects: SSH libraries can embed connection information.
-            Log.Error("Unhandled UI failure of type {FailureType}", exception.Exception.GetType().Name);
-            MessageBox.Show("Не удалось выполнить операцию / Operation failed.", "SSH Hardener", MessageBoxButton.OK, MessageBoxImage.Error);
-            exception.Handled = true;
+            // Mark handled and latch before doing anything that can pump dispatcher messages.
+            if (_uiFailureStarted) return;
+            _uiFailureStarted = true;
+            // Method names aid diagnosis without persisting exception messages, arguments or secrets.
+            Log.Error("Unhandled UI failure of type {FailureType}; frames: {Frames}",
+                exception.Exception.GetType().Name, SafeFrames(exception.Exception));
+            Task recovery;
+            try { recovery = _services?.GetRequiredService<MainViewModel>().StopForUiFailureAsync() ?? Task.CompletedTask; }
+            catch (Exception error)
+            {
+                Log.Error("UI failure cancellation failed with {FailureType}", error.GetType().Name);
+                recovery = Task.CompletedTask;
+            }
+            // Never show a modal from the exception callback: layout may have disabled processing.
+            Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, new Action(async () =>
+            {
+                try
+                {
+                    // Keep the dispatcher alive while the engine attempts independent recovery.
+                    await recovery;
+                    MessageBox.Show("Сбой интерфейса. Активная операция остановлена. Перед повторным применением проверьте состояние сервера и результат восстановления в журнале.\n\nUI failure. The active operation was stopped. Check the server state and recovery result in the log before retrying.",
+                        "SSH Hardener", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                finally { Shutdown(1); }
+            }));
         };
         Log.Information("SSH Hardener started");
         try
@@ -120,6 +145,13 @@ public partial class App : Application
         var text = index >= 0 ? (index + 1 < args.Length ? args[index + 1] : "") : combined?[(name.Length + 1)..];
         return text is null ? fallback : int.TryParse(text, out var value) ? value : throw new ArgumentException("Invalid preview option: " + name);
     }
+
+    private static string SafeFrames(Exception error) => string.Join(" <- ",
+        new StackTrace(error, false).GetFrames().Take(20).Select(frame =>
+        {
+            var method = frame.GetMethod();
+            return method is null ? "unknown" : method.DeclaringType?.FullName + "." + method.Name;
+        }));
 
     protected override void OnExit(ExitEventArgs e)
     {

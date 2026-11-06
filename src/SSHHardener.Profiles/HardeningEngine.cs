@@ -65,7 +65,14 @@ public sealed partial class HardeningEngine(IRemoteSessionFactory sessionFactory
                 return new HardeningResult(plan.TransactionId, false, false,
                     (cancelled ? "Cancelled before changes. " : "Preflight failed; no changes were applied. ") + error.Message, DateTimeOffset.UtcNow);
 
-            progress?.Report(new OperationProgress("rollback", "Recover the transaction independently of cancellation; the server deadline remains armed until recovery succeeds", 90));
+            try
+            {
+                progress?.Report(new OperationProgress("rollback", "Recover the transaction independently of cancellation; the server deadline remains armed until recovery succeeds", 90));
+            }
+            catch (Exception)
+            {
+                // A failed observer must not prevent recovery of an already armed transaction.
+            }
             using var recoveryDeadline = new CancellationTokenSource(TimeSpan.FromSeconds(90));
             string? state = null;
             try
