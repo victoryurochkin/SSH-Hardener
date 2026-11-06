@@ -58,7 +58,7 @@
         </TabItem>
         <TabItem Header="{Binding L[Audit]}">
           <Grid Margin="0,10,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-            <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="{Binding L[AuditHeading]}" Style="{StaticResource Heading}" /><TextBlock Text="{Binding L[AuditHint]}" Style="{StaticResource Hint}" /><TextBlock Text="{Binding Summary}" Margin="0,0,0,10" /><Button Content="{Binding L[RefreshAudit]}" Style="{StaticResource SecondaryButton}" Command="{Binding AuditCommand}" IsEnabled="{Binding CanAudit}" HorizontalAlignment="Left" /></StackPanel></Border>
+            <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="{Binding L[AuditHeading]}" Style="{StaticResource Heading}" /><TextBlock Text="{Binding L[AuditHint]}" Style="{StaticResource Hint}" /><TextBlock Text="{Binding Summary}" Margin="0,0,0,10" /><TextBlock Text="{Binding AuditPrivilegeMessage}" Style="{StaticResource Hint}" TextWrapping="Wrap" /><Button Content="{Binding L[RefreshAudit]}" Style="{StaticResource SecondaryButton}" Command="{Binding AuditCommand}" IsEnabled="{Binding CanAudit}" HorizontalAlignment="Left" /></StackPanel></Border>
             <TextBox Grid.Row="1" Text="{Binding AuditText, Mode=OneWay}" Style="{StaticResource ReadOnlyText}" />
           </Grid>
         </TabItem>
@@ -94,7 +94,8 @@
               <TextBlock Text="{Binding L[Whitelist]}" /><TextBox Text="{Binding Whitelist, UpdateSourceTrigger=PropertyChanged}" />
               <TextBlock Text="{Binding L[RollbackMinutes]}" /><TextBox Text="{Binding RollbackMinutes, UpdateSourceTrigger=PropertyChanged}" Width="120" HorizontalAlignment="Left" />
               <TextBlock Text="{Binding L[ValidationNote]}" Style="{StaticResource Hint}" />
-              <Button Content="{Binding L[BuildPlan]}" Command="{Binding BuildPlanCommand}" IsEnabled="{Binding CanBuildPlan}" HorizontalAlignment="Left" />
+              <TextBlock Text="{Binding PlanAvailabilityMessage}" TextWrapping="Wrap"><TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource Hint}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding HasPlanBlocker}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+              <Button Content="{Binding L[BuildPlan]}" Command="{Binding BuildPlanCommand}" IsEnabled="{Binding CanBuildPlan}" ToolTip="{Binding PlanAvailabilityMessage}" ToolTipService.ShowOnDisabled="True" HorizontalAlignment="Left" />
             </StackPanel></Border>
           </StackPanel></ScrollViewer>
         </TabItem>

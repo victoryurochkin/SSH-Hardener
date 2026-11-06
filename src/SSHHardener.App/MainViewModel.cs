@@ -65,7 +65,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         CancelCommand = new RelayCommand(() => _operation?.Cancel());
         LanguageCommand = new RelayCommand(() =>
         {
-            var knownStatus = new[] { "Ready", "Connecting", "Auditing", "Connected", "PlanReady", "Applying", "Failed", "OperationCancelled" }
+            var knownStatus = new[] { "Ready", "Connecting", "Auditing", "Connected", "AuditReadOnlyStatus", "PlanReady", "Applying", "Failed", "OperationCancelled" }
                 .FirstOrDefault(key => Status == L[key]);
             var emptyBans = BanText == L["EmptyBans"];
             L.Toggle();
@@ -74,6 +74,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             if (emptyBans) BanText = L["EmptyBans"];
             if (_session is null) Summary = L["Disconnected"];
             if (knownStatus is not null) Status = L[knownStatus];
+            NotifyAvailability();
         });
     }
 
@@ -90,6 +91,14 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public bool CanConnect => Idle && !string.IsNullOrWhiteSpace(Host) && !string.IsNullOrWhiteSpace(Username) && int.TryParse(Port, out var port) && port is > 0 and < 65536;
     public bool CanAudit => Idle && SessionAvailable;
     public bool CanBuildPlan => CanAudit && _audit?.HasRoot == true;
+    public bool HasPlanBlocker => !CanBuildPlan;
+    public string PlanAvailabilityMessage => Busy ? L["PlanBusy"]
+        : _session is null ? L["PlanConnectRequired"]
+        : _connectionChanged ? L["PlanReconnectRequired"]
+        : _audit is null ? L["PlanAuditRequired"]
+        : !_audit.HasRoot ? L["PlanAdminRequired"] : "";
+    public string AuditPrivilegeMessage => _audit is null ? ""
+        : L[_audit.HasRoot ? "AuditAdminVerified" : "AuditReadOnly"];
     public bool CanApply => CanAudit && _plan is not null;
     public bool CanRollback => Idle && _session is not null && _executedPlan is not null;
     public bool CanExport => Idle && (_audit is not null || _executedPlan is not null);
@@ -168,7 +177,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
     private void NotifyAvailability()
     {
-        foreach (var name in new[] { nameof(CanConnect), nameof(CanAudit), nameof(CanBuildPlan), nameof(CanApply),
+        foreach (var name in new[] { nameof(CanConnect), nameof(CanAudit), nameof(CanBuildPlan), nameof(HasPlanBlocker),
+            nameof(PlanAvailabilityMessage), nameof(AuditPrivilegeMessage), nameof(CanApply),
             nameof(CanRollback), nameof(CanExport), nameof(CanManageBans), nameof(CanUnban), nameof(CanLoadProfile) })
             OnPropertyChanged(name);
     }
@@ -267,7 +277,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         _audit = await _auditor.AuditAsync(session, ct);
         AuditText = _audit.RawReport + "\n\n" + _audit.EffectiveConfig + "\n\n" + string.Join("\n", _audit.Warnings);
         Summary = $"{_audit.Description}  •  {_audit.OpenSshVersion}\n{_audit.Firewall}  /  {_audit.InitSystem}  /  SELinux: {_audit.Selinux}";
-        Status = L["Connected"];
+        Status = L[_audit.HasRoot ? "Connected" : "AuditReadOnlyStatus"];
         AddLog(Status + ": " + _audit.Description);
         SelectedTab = 1;
     }

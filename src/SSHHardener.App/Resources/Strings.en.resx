@@ -99,6 +99,14 @@
 <data name="CloseBusy" xml:space="preserve"><value>Changes are still running. Cancel and wait for rollback before closing.</value></data>
 <data name="AuditSummary" xml:space="preserve"><value>OS / OpenSSH / Firewall / Init</value></data>
 <data name="ValidationNote" xml:space="preserve"><value>Module support is checked when building the plan. Unsupported scenarios are blocked.</value></data>
+<data name="PlanBusy" xml:space="preserve"><value>Wait for the current operation to finish.</value></data>
+<data name="PlanConnectRequired" xml:space="preserve"><value>Connect to the server and run an audit.</value></data>
+<data name="PlanReconnectRequired" xml:space="preserve"><value>Connection settings have changed. Reconnect and run the audit again.</value></data>
+<data name="PlanAuditRequired" xml:space="preserve"><value>Run a server audit before building the plan.</value></data>
+<data name="PlanAdminRequired" xml:space="preserve"><value>Root/sudo access has not been verified for this connection. On the Connect tab, use an account with sudo privileges and enter its sudo password if required, then reconnect. “Grant administrator access with sudo” applies to the new user.</value></data>
+<data name="AuditAdminVerified" xml:space="preserve"><value>Administrator privileges verified.</value></data>
+<data name="AuditReadOnly" xml:space="preserve"><value>The audit is read-only: root/sudo access has not been verified. You cannot build or apply a plan.</value></data>
+<data name="AuditReadOnlyStatus" xml:space="preserve"><value>Audit complete · read-only (no root/sudo)</value></data>
 <data name="SavedConnections" xml:space="preserve"><value>Saved connections</value></data>
 <data name="EmptyProfiles" xml:space="preserve"><value>Save the connection settings to reconnect to this server quickly next time. Profiles do not store passwords.</value></data>
 <data name="EmptyBans" xml:space="preserve"><value>Connect to a server and select “Refresh bans” to read the sshd jail ban list.</value></data>

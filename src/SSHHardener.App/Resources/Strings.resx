@@ -99,6 +99,14 @@
 <data name="CloseBusy" xml:space="preserve"><value>Изменения ещё выполняются. Сначала отмените операцию и дождитесь результата отката.</value></data>
 <data name="AuditSummary" xml:space="preserve"><value>ОС / OpenSSH / Firewall / Init</value></data>
 <data name="ValidationNote" xml:space="preserve"><value>Поддержка отдельных модулей определяется при построении плана. Неподдерживаемые сценарии блокируются.</value></data>
+<data name="PlanBusy" xml:space="preserve"><value>Дождитесь завершения текущей операции.</value></data>
+<data name="PlanConnectRequired" xml:space="preserve"><value>Подключитесь к серверу и выполните аудит.</value></data>
+<data name="PlanReconnectRequired" xml:space="preserve"><value>Данные подключения изменены. Подключитесь заново и повторите аудит.</value></data>
+<data name="PlanAuditRequired" xml:space="preserve"><value>Выполните аудит сервера перед построением плана.</value></data>
+<data name="PlanAdminRequired" xml:space="preserve"><value>Права root/sudo для текущего подключения не подтверждены. На вкладке «Подключение» укажите учётную запись с правами sudo и пароль sudo, если он нужен, затем подключитесь заново. Галочка «Предоставить sudo» относится к новому пользователю.</value></data>
+<data name="AuditAdminVerified" xml:space="preserve"><value>Права администратора подтверждены.</value></data>
+<data name="AuditReadOnly" xml:space="preserve"><value>Аудит выполнен в режиме просмотра: права root/sudo не подтверждены. Построение и применение плана недоступны.</value></data>
+<data name="AuditReadOnlyStatus" xml:space="preserve"><value>Аудит завершён · только просмотр (нет root/sudo)</value></data>
 <data name="SavedConnections" xml:space="preserve"><value>Сохранённые подключения</value></data>
 <data name="EmptyProfiles" xml:space="preserve"><value>Сохраните параметры подключения, чтобы быстро подключаться к этому серверу в следующий раз. Пароли в профиль не записываются.</value></data>
 <data name="EmptyBans" xml:space="preserve"><value>Подключитесь к серверу и нажмите «Обновить список», чтобы получить блокировки jail sshd.</value></data>
