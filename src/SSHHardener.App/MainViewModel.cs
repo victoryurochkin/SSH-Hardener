@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using Serilog;
 using SSHHardener.Core;
+using SSHHardener.Profiles;
 using SSHHardener.Reports;
 using SSHHardener.Ssh;
 
@@ -23,6 +24,12 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private readonly KeyService _keys;
     private readonly ProfileStore _profiles;
     private readonly ReportExporter _reports;
+    private readonly OperationHistoryStore _history;
+    private readonly TransactionStatusService _transactionStatus;
+    private OperationRecord? _selectedOperation;
+    private TransactionStatus? _checkedOperation;
+    private IRemoteSession? _checkedOperationSession;
+    private bool _historyCheckFailed, _synchronizingHistory;
     private IRemoteSession? _session;
     private ServerAudit? _audit;
     private HardeningPlan? _plan;
@@ -41,9 +48,12 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private ServerProfile? _selectedProfile;
 
     public MainViewModel(IRemoteSessionFactory sessions, IAuditService auditor, IPlanBuilder planner,
-        IHardeningEngine engine, KeyService keys, ProfileStore profiles, ReportExporter reports)
+        IHardeningEngine engine, KeyService keys, ProfileStore profiles, ReportExporter reports,
+        OperationHistoryStore? history = null, TransactionStatusService? transactionStatus = null)
     {
         (_sessions, _auditor, _planner, _engine, _keys, _profiles, _reports) = (sessions, auditor, planner, engine, keys, profiles, reports);
+        _history = history ?? new OperationHistoryStore();
+        _transactionStatus = transactionStatus ?? new TransactionStatusService();
         Status = L["Ready"];
         AuditText = L["EmptyAudit"];
         PreviewText = L["EmptyPlan"];
@@ -54,6 +64,9 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         BuildPlanCommand = new AsyncRelayCommand(() => RunAsync(BuildPlanAsync));
         ApplyCommand = new AsyncRelayCommand(() => RunAsync(ApplyAsync));
         RollbackCommand = new AsyncRelayCommand(() => RunAsync(RollbackAsync));
+        CheckOperationCommand = new AsyncRelayCommand(() => RunAsync(CheckOperationAsync));
+        UseOriginalConnectionCommand = new RelayCommand(() => UseOperationConnection(false));
+        UseNewConnectionCommand = new RelayCommand(() => UseOperationConnection(true));
         RefreshBansCommand = new AsyncRelayCommand(() => RunAsync(RefreshBansAsync));
         UnbanCommand = new AsyncRelayCommand(() => RunAsync(UnbanAsync));
         ExportCommand = new AsyncRelayCommand(() => RunAsync(ExportAsync));
@@ -85,7 +98,9 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public Func<ConnectionSecrets>? ReadConnectionSecrets { get; set; }
     public Func<string>? ReadNewKeyPassphrase { get; set; }
     public Action? ClearConnectionSecrets { get; set; }
+    public Func<string, bool>? ConfirmAction { get; set; }
     public ObservableCollection<ServerProfile> Profiles { get; } = [];
+    public ObservableCollection<OperationRecord> Operations { get; } = [];
     public ObservableCollection<string> Log { get; } = [];
     public string[] RootPolicies { get; } = ["prohibit-password", "no"];
     public bool Busy { get => _busy; private set { SetProperty(ref _busy, value); OnPropertyChanged(nameof(Idle)); NotifyAvailability(); } }
@@ -103,7 +118,11 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public string AuditPrivilegeMessage => _audit is null ? ""
         : L[_audit.HasRoot ? "AuditAdminVerified" : "AuditReadOnly"];
     public bool CanApply => CanAudit && _plan is not null;
-    public bool CanRollback => Idle && _session is not null && _executedPlan is not null;
+    public bool CanRollback => CanCheckOperation && ReferenceEquals(_checkedOperationSession, _session) &&
+        _checkedOperation is not null && CanRecover(_checkedOperation);
+    public bool CanUseOperation => Idle && SelectedOperation is not null;
+    public bool CanCheckOperation => CanAudit && _audit?.HasRoot == true &&
+        SelectedOperation is not null && OperationMatchesSession(SelectedOperation, _session!);
     public bool CanExport => Idle && (_audit is not null || _executedPlan is not null);
     public bool CanManageBans => CanAudit && _audit?.HasRoot == true;
     public bool CanUnban => CanManageBans && IPAddress.TryParse(BanIp.Trim(), out _);
@@ -150,11 +169,51 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public int Progress { get => _progress; private set => SetProperty(ref _progress, value); }
     public int SelectedTab { get => _selectedTab; set => SetProperty(ref _selectedTab, value); }
     public ServerProfile? SelectedProfile { get => _selectedProfile; set { SetProperty(ref _selectedProfile, value); NotifyAvailability(); } }
+    public OperationRecord? SelectedOperation
+    {
+        get => _selectedOperation;
+        set
+        {
+            if (!SetProperty(ref _selectedOperation, value)) return;
+            ClearOperationCheck();
+            if (!_synchronizingHistory)
+            {
+                if (_executedPlan?.TransactionId != value?.TransactionId)
+                {
+                    _executedPlan = null; _executedIdentityKey = null;
+                }
+                if (_result?.TransactionId != value?.TransactionId) _result = null;
+            }
+            NotifyAvailability();
+        }
+    }
+    public string OperationStatusText
+    {
+        get
+        {
+            if (SelectedOperation is not { } operation) return L["HistoryEmpty"];
+            if (_historyCheckFailed) return L["HistoryCheckFailed"];
+            if (SessionAvailable && !OperationMatchesSession(operation, _session!)) return L["HistoryDifferentServer"];
+            if (_checkedOperation is not null && ReferenceEquals(_checkedOperationSession, _session) && SessionAvailable)
+            {
+                var verified = string.Format(L["HistoryVerified"], StateLabel(_checkedOperation.State),
+                    operation.LastConfirmedAt?.ToLocalTime().ToString("g") ?? "");
+                return _checkedOperation.State == OperationState.Committed && !_checkedOperation.IsLastCommitted
+                    ? verified + "\n" + L["HistoryRollbackUnavailable"] : verified;
+            }
+            if (operation.LastConfirmedAt is { } checkedAt)
+                return string.Format(L["HistoryLastConfirmed"], StateLabel(operation.LastConfirmedState), checkedAt.ToLocalTime().ToString("g"));
+            return L["HistoryNotChecked"];
+        }
+    }
     public IAsyncRelayCommand ConnectCommand { get; }
     public IAsyncRelayCommand AuditCommand { get; }
     public IAsyncRelayCommand BuildPlanCommand { get; }
     public IAsyncRelayCommand ApplyCommand { get; }
     public IAsyncRelayCommand RollbackCommand { get; }
+    public IAsyncRelayCommand CheckOperationCommand { get; }
+    public IRelayCommand UseOriginalConnectionCommand { get; }
+    public IRelayCommand UseNewConnectionCommand { get; }
     public IAsyncRelayCommand RefreshBansCommand { get; }
     public IAsyncRelayCommand UnbanCommand { get; }
     public IAsyncRelayCommand ExportCommand { get; }
@@ -173,6 +232,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     {
         try { foreach (var profile in await _profiles.LoadAsync(CancellationToken.None)) Profiles.Add(profile); }
         catch (Exception ex) { AddLog(ex.Message); }
+        try { ReplaceOperations(await _history.LoadAsync(CancellationToken.None)); }
+        catch (Exception) { AddLog(L["HistoryLoadFailed"]); }
     }
 
     public void InvalidatePlan()
@@ -186,17 +247,119 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     {
         foreach (var name in new[] { nameof(CanConnect), nameof(CanAudit), nameof(CanBuildPlan), nameof(HasPlanBlocker),
             nameof(PlanAvailabilityMessage), nameof(AuditPrivilegeMessage), nameof(CanApply),
-            nameof(CanRollback), nameof(CanExport), nameof(CanManageBans), nameof(CanUnban), nameof(CanLoadProfile), nameof(CanExportPuttyKey) })
+            nameof(CanRollback), nameof(CanExport), nameof(CanManageBans), nameof(CanUnban), nameof(CanLoadProfile), nameof(CanExportPuttyKey),
+            nameof(CanUseOperation), nameof(CanCheckOperation), nameof(OperationStatusText) })
             OnPropertyChanged(name);
     }
 
     public void InvalidateConnection()
     {
+        ClearOperationCheck();
         _connectionChanged = true;
         _audit = null;
         AuditText = L["EmptyAudit"];
         Summary = L["Disconnected"];
         InvalidatePlan();
+    }
+
+    private string StateLabel(OperationState state) => L["HistoryState" + state];
+
+    private void ClearOperationCheck()
+    {
+        _checkedOperation = null;
+        _checkedOperationSession = null;
+        _historyCheckFailed = false;
+        OnPropertyChanged(nameof(OperationStatusText));
+    }
+
+    private static bool OperationMatchesEndpoint(OperationRecord operation, ConnectionOptions connection) =>
+        string.Equals(operation.Host, connection.Host, StringComparison.OrdinalIgnoreCase) &&
+        (connection.Port == operation.OriginalPort || connection.Port == operation.NewPort);
+
+    private static bool OperationMatchesSession(OperationRecord operation, IRemoteSession session) =>
+        OperationMatchesEndpoint(operation, session.Options) &&
+        string.Equals(operation.HostKeyAlgorithm, session.Identity.Algorithm, StringComparison.Ordinal) &&
+        string.Equals(operation.HostKeyBase64, session.Identity.KeyBase64, StringComparison.Ordinal);
+
+    private static bool CanRecover(TransactionStatus status) => status.State is
+        OperationState.Pending or OperationState.RecoveryFailed or OperationState.RecoveryDeferred ||
+        (status.State == OperationState.Committed && status.IsLastCommitted);
+
+    private void ReplaceOperations(IReadOnlyList<OperationRecord> operations, string? selectedId = null)
+    {
+        selectedId ??= SelectedOperation?.TransactionId;
+        _synchronizingHistory = true;
+        try
+        {
+            Operations.Clear();
+            foreach (var operation in operations) Operations.Add(operation);
+            SelectedOperation = Operations.FirstOrDefault(x => x.TransactionId == selectedId) ?? Operations.FirstOrDefault();
+        }
+        finally { _synchronizingHistory = false; }
+        NotifyAvailability();
+    }
+
+    private async Task SaveOperationAsync(OperationRecord operation, CancellationToken ct)
+    {
+        ReplaceOperations(await _history.UpsertAsync(operation, ct), operation.TransactionId);
+    }
+
+    private async Task TrySaveConfirmedOperationAsync(OperationRecord operation, OperationState state, CancellationToken ct)
+    {
+        var confirmed = operation with { LastConfirmedState = state, LastConfirmedAt = DateTimeOffset.UtcNow };
+        try
+        {
+            var operations = await _history.UpsertAsync(confirmed, ct);
+            if (!_uiFailed) ReplaceOperations(operations, confirmed.TransactionId);
+        }
+        catch (Exception)
+        {
+            if (_uiFailed) return;
+            ReplaceOperations(Operations.Where(x => x.TransactionId != confirmed.TransactionId).Prepend(confirmed).ToArray(), confirmed.TransactionId);
+            AddLog(L["HistorySaveFailed"]);
+        }
+    }
+
+    private void UseOperationConnection(bool useNew)
+    {
+        if (!Idle || SelectedOperation is not { } operation) return;
+        Host = operation.Host;
+        Port = (useNew ? operation.NewPort : operation.OriginalPort).ToString();
+        Username = useNew ? operation.NewUsername : operation.OriginalUsername;
+        PrivateKey = (useNew ? operation.NewPrivateKeyPath : operation.OriginalPrivateKeyPath) ?? "";
+        ClearConnectionSecrets?.Invoke();
+        InvalidateConnection();
+        Status = L["HistoryCredentialsRequired"];
+        SelectedTab = 0;
+    }
+
+    private async Task CheckOperationAsync(CancellationToken ct)
+    {
+        var operation = SelectedOperation ?? throw new InvalidOperationException(L["HistoryEmpty"]);
+        var session = RequireSession();
+        ClearOperationCheck();
+        NotifyAvailability();
+        if (_audit?.HasRoot != true) throw new InvalidOperationException(L["PlanAdminRequired"]);
+        Status = L["HistoryChecking"];
+        try
+        {
+            var server = await _transactionStatus.CheckAsync(session, operation, ct);
+            if (server.State == OperationState.Unknown) throw new InvalidOperationException(L["HistoryCheckFailed"]);
+            if (!ReferenceEquals(session, _session) || _connectionChanged || SelectedOperation?.TransactionId != operation.TransactionId)
+                throw new InvalidOperationException(L["StaleConnection"]);
+            await TrySaveConfirmedOperationAsync(operation, server.State, CancellationToken.None);
+            if (_uiFailed) return;
+            _checkedOperation = server;
+            _checkedOperationSession = session;
+            Status = OperationStatusText;
+            AddLog(Status);
+        }
+        catch
+        {
+            _historyCheckFailed = true;
+            throw;
+        }
+        finally { NotifyAvailability(); }
     }
 
     private void SetConnection<T>(ref T field, T value, [System.Runtime.CompilerServices.CallerMemberName] string? name = null)
@@ -264,20 +427,40 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         var secrets = ReadConnectionSecrets?.Invoke() ?? new ConnectionSecrets("", "", "");
         var options = new ConnectionOptions(Host.Trim(), ParsePort(Port), Username.Trim(),
             string.IsNullOrEmpty(PrivateKey) ? secrets.Password : null, NullIfEmpty(PrivateKey), NullIfEmpty(secrets.Passphrase), NullIfEmpty(secrets.SudoPassword));
+        var pinnedOperation = SelectedOperation is { } candidate && OperationMatchesEndpoint(candidate, options) ? candidate : null;
+        ClearOperationCheck();
         if (_session is not null) { await _session.DisposeAsync(); _session = null; }
         _audit = null;
         InvalidatePlan();
-        _session = await _sessions.ConnectAsync(options, TrustHostAsync, ct);
+        _session = await _sessions.ConnectAsync(options, identity =>
+        {
+            if (pinnedOperation is null) return TrustHostAsync(identity);
+            if (!string.Equals(pinnedOperation.HostKeyAlgorithm, identity.Algorithm, StringComparison.Ordinal) ||
+                !string.Equals(pinnedOperation.HostKeyBase64, identity.KeyBase64, StringComparison.Ordinal))
+                throw new HostKeyChangedException(L["HistoryHostChanged"]);
+            return Task.FromResult(true);
+        }, ct);
         if (_executedPlan is not null &&
             (!string.Equals(_executedPlan.OriginalConnection.Host, options.Host, StringComparison.OrdinalIgnoreCase) ||
+             (options.Port != _executedPlan.OriginalConnection.Port && options.Port != _executedPlan.Options.NewPort) ||
              !string.Equals(_executedIdentityKey, _session.Identity.KeyBase64, StringComparison.Ordinal)))
         {
             _executedPlan = null;
             _result = null;
             _executedIdentityKey = null;
         }
+        if (_result is not null)
+        {
+            var resultOperation = Operations.FirstOrDefault(x => x.TransactionId == _result.TransactionId);
+            if (resultOperation is null || !OperationMatchesSession(resultOperation, _session)) _result = null;
+        }
         _connectionChanged = false;
         await AuditAsync(ct);
+        if (SelectedOperation is { } operation && _audit?.HasRoot == true && OperationMatchesSession(operation, _session))
+        {
+            await CheckOperationAsync(ct);
+            SelectedTab = 4;
+        }
     }
 
     private Task<bool> TrustHostAsync(HostIdentity host)
@@ -298,6 +481,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private async Task AuditAsync(CancellationToken ct)
     {
         var session = RequireSession();
+        ClearOperationCheck();
         Status = L["Auditing"];
         InvalidatePlan();
         _audit = null;
@@ -345,6 +529,12 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         if ((plan.Options.NoPasswordSudo || plan.Options.BanSeconds == -1) &&
             !Confirm(L["ConfirmRisk"] + "\n\n" + plan.Audit.AdminAddress)) return;
         if (!Confirm(L["ConfirmApply"])) return;
+        var operation = OperationRecord.FromPlan(plan, session.Identity);
+        // Persist a deliberately secret-free recovery reference before any server mutation.
+        // If persistence fails, the engine must not start.
+        await SaveOperationAsync(operation, ct);
+        ct.ThrowIfCancellationRequested();
+        AddLog(L["HistorySaved"]);
         SelectedTab = 4;
         Progress = 0;
         Status = L["Applying"];
@@ -365,6 +555,9 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         try
         {
             _result = await _engine.ApplyAsync(session, plan, progress, ct);
+            if (_result.Committed || _result.RolledBack)
+                await TrySaveConfirmedOperationAsync(operation,
+                    _result.Committed ? OperationState.Committed : OperationState.RolledBack, CancellationToken.None);
             Serilog.Log.Information("Transaction {TransactionId} finished: committed={Committed}, rolledBack={RolledBack}",
                 plan.TransactionId, _result.Committed, _result.RolledBack);
             if (_uiFailed) return;
@@ -384,16 +577,22 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
     private async Task RollbackAsync(CancellationToken ct)
     {
-        var plan = _executedPlan ?? throw new InvalidOperationException(L.English ? "No transaction has been applied yet." : "Пока не было попыток применения транзакции.");
-        if (!Confirm(L["ConfirmRollback"])) return;
-        if (_session is null) throw new InvalidOperationException(L["NoConnection"]);
-        if (!string.Equals(_executedIdentityKey, _session.Identity.KeyBase64, StringComparison.Ordinal))
-            throw new InvalidOperationException("Rollback server identity mismatch.");
-        await _engine.RollbackAsync(_session, plan.TransactionId, ct);
-        _result = new HardeningResult(plan.TransactionId, false, true, L["RollbackComplete"], DateTimeOffset.UtcNow);
+        var operation = SelectedOperation ?? throw new InvalidOperationException(L["HistoryEmpty"]);
+        var session = RequireSession();
+        ClearOperationCheck();
+        NotifyAvailability();
+        if (_audit?.HasRoot != true) throw new InvalidOperationException(L["PlanAdminRequired"]);
+        // Re-read under the selected host pin; cached local or UI state never authorizes recovery.
+        var server = await _transactionStatus.CheckAsync(session, operation, ct);
+        if (!CanRecover(server)) throw new InvalidOperationException(L["HistoryRollbackUnavailable"]);
+        if (!Confirm(string.Format(L["HistoryRollbackConfirm"], operation.TransactionId, operation.Host,
+            operation.OriginalPort, operation.OriginalUsername))) return;
+        await _engine.RollbackAsync(session, operation.TransactionId, ct);
+        _result = new HardeningResult(operation.TransactionId, false, true, L["RollbackComplete"], DateTimeOffset.UtcNow);
+        await TrySaveConfirmedOperationAsync(operation, OperationState.RolledBack, CancellationToken.None);
         InvalidateConnection();
         Status = L["RollbackComplete"];
-        AddLog(Status + ": " + plan.TransactionId);
+        AddLog(Status + ": " + operation.TransactionId);
     }
 
     private async Task RefreshBansAsync(CancellationToken ct)
@@ -493,7 +692,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private static string KeyIdentity(string value) => string.Join(" ", value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Take(2));
     private int ParsePort(string value) => int.TryParse(value, out var port) && port is > 0 and < 65536 ? port : throw new ArgumentException(L["PortInvalid"]);
     private static string? NullIfEmpty(string? value) => string.IsNullOrEmpty(value) ? null : value;
-    private bool Confirm(string text) => MessageBox.Show(text, "SSH Hardener", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
+    private bool Confirm(string text) => ConfirmAction?.Invoke(text) ??
+        MessageBox.Show(text, "SSH Hardener", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
     private void AddLog(string value) { Log.Add($"{DateTimeOffset.Now:HH:mm:ss}  {value}"); while (Log.Count > 1000) Log.RemoveAt(0); }
 
     private sealed class InlineProgress<T>(Action<T> report) : IProgress<T>

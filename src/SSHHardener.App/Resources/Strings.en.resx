@@ -72,7 +72,7 @@
 <data name="ExportReport" xml:space="preserve"><value>Export report…</value></data>
 <data name="LogHint" xml:space="preserve"><value>The log records steps and results. Secret data is excluded.</value></data>
 <data name="BansHeading" xml:space="preserve"><value>Fail2ban bans</value></data>
-<data name="BansHint" xml:space="preserve"><value>Uses the sshd jail. Enter an exact IP address to unban.</value></data>
+<data name="BansHint" xml:space="preserve"><value>Uses the sshhardener-sshd jail. Enter an exact IP address to unban.</value></data>
 <data name="RefreshBans" xml:space="preserve"><value>Refresh bans</value></data>
 <data name="Unban" xml:space="preserve"><value>Unban IP</value></data>
 <data name="BanIp" xml:space="preserve"><value>IP address</value></data>
@@ -116,7 +116,34 @@
 <data name="AuditReadOnlyStatus" xml:space="preserve"><value>Audit complete · read-only (no root/sudo)</value></data>
 <data name="SavedConnections" xml:space="preserve"><value>Saved connections</value></data>
 <data name="EmptyProfiles" xml:space="preserve"><value>Save the connection settings to reconnect to this server quickly next time. Profiles do not store passwords.</value></data>
-<data name="EmptyBans" xml:space="preserve"><value>Connect to a server and select “Refresh bans” to read the sshd jail ban list.</value></data>
+<data name="EmptyBans" xml:space="preserve"><value>Connect to a server and select “Refresh bans” to read the sshhardener-sshd jail ban list.</value></data>
+<data name="OperationHistory" xml:space="preserve"><value>Operation history</value></data>
+<data name="OperationHistoryHint" xml:space="preserve"><value>Select an operation, connect to its server, and check its state. Passwords must be entered again.</value></data>
+<data name="UseOriginalConnection" xml:space="preserve"><value>Original connection</value></data>
+<data name="UseNewConnection" xml:space="preserve"><value>New connection</value></data>
+<data name="CheckOperation" xml:space="preserve"><value>Check state</value></data>
+<data name="HistoryEmpty" xml:space="preserve"><value>No operations yet. Applying changes will create a recovery record here.</value></data>
+<data name="HistoryNotChecked" xml:space="preserve"><value>The server state has not been checked. Connect and select “Check state”.</value></data>
+<data name="HistoryLastConfirmed" xml:space="preserve"><value>Last confirmed: {0}, {1}. Check the server again.</value></data>
+<data name="HistoryVerified" xml:space="preserve"><value>Verified on the server: {0} · {1}</value></data>
+<data name="HistoryDifferentServer" xml:space="preserve"><value>This connection does not match the selected operation. Use its original or new connection settings.</value></data>
+<data name="HistoryLoadFailed" xml:space="preserve"><value>Could not read the operation history. New changes are blocked until history can be saved.</value></data>
+<data name="HistorySaveFailed" xml:space="preserve"><value>Could not update the local history. This does not change the operation’s result on the server.</value></data>
+<data name="HistorySaved" xml:space="preserve"><value>Operation details saved without passwords or key passphrases.</value></data>
+<data name="HistoryCredentialsRequired" xml:space="preserve"><value>Connection settings filled in. Enter the password or key passphrase, then connect.</value></data>
+<data name="HistoryChecking" xml:space="preserve"><value>Checking the operation’s server state…</value></data>
+<data name="HistoryCheckFailed" xml:space="preserve"><value>The operation’s server state could not be verified. Check the connection and try again.</value></data>
+<data name="HistoryRollbackUnavailable" xml:space="preserve"><value>Rollback is unavailable for the current state, or a newer operation has been applied.</value></data>
+<data name="HistoryHostChanged" xml:space="preserve"><value>The server key does not match the saved operation. Connection stopped.</value></data>
+<data name="HistoryRollbackConfirm" xml:space="preserve"><value>Operation {0}&#10;Server: {1}&#10;Original port: {2}, user: {3}&#10;&#10;Rollback may remove your current access. Continue?</value></data>
+<data name="HistoryStateUnknown" xml:space="preserve"><value>Unknown</value></data>
+<data name="HistoryStateNotFound" xml:space="preserve"><value>Operation not found</value></data>
+<data name="HistoryStatePending" xml:space="preserve"><value>Pending completion</value></data>
+<data name="HistoryStateRollingBack" xml:space="preserve"><value>Rolling back</value></data>
+<data name="HistoryStateRecoveryDeferred" xml:space="preserve"><value>Rollback deferred</value></data>
+<data name="HistoryStateRecoveryFailed" xml:space="preserve"><value>Rollback failed</value></data>
+<data name="HistoryStateRolledBack" xml:space="preserve"><value>Rolled back</value></data>
+<data name="HistoryStateCommitted" xml:space="preserve"><value>Changes applied</value></data>
 <data name="EmptyLog" xml:space="preserve"><value>Execution steps and verification results will appear here. No changes have been applied yet.</value></data>
 <data name="RollbackComplete" xml:space="preserve"><value>The server confirmed manual rollback of the changes.</value></data>
 </root>

@@ -17,3 +17,11 @@ dotnet run --project tests/SSHHardener.UiTests/SSHHardener.UiTests.csproj -c Rel
 ```
 
 This intentionally reinstalls the old synchronous `CollectionChanged → ScrollIntoView` callback before the ItemsSource subscription. It is expected to exit **1** with an ItemsControl/ItemContainerGenerator inconsistency during the initial log burst. It does not edit production code. The normal command is the regression check to run in CI; the legacy command is a diagnostic baseline and must not be treated as a passing test.
+
+The same harness also tests persisted operation history using only temporary fixture directories and fake sessions. A new ViewModel loads metadata without a connection, clears secrets when restoring either endpoint, rejects a changed server key, requires a fresh status for rollback, revokes eligibility on failure/selection changes, and rechecks latest-commit state before explicit recovery. A corrupt history must prevent the engine from starting; a successful apply must see its durable metadata before its first engine call. Fixture rollback is not VM rollback certification.
+
+To save two populated-history layout previews (RU/light and EN/dark, 920×640) beside the diagnostics file:
+
+```powershell
+dotnet run --project tests/SSHHardener.UiTests/SSHHardener.UiTests.csproj -c Release -- artifacts/restart-ui-regression.txt --history-previews
+```

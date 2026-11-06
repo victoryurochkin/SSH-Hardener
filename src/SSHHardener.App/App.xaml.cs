@@ -31,6 +31,8 @@ public partial class App : Application
         services.AddSingleton<IHardeningEngine, HardeningEngine>();
         services.AddSingleton<KeyService>();
         services.AddSingleton<ProfileStore>();
+        services.AddSingleton<OperationHistoryStore>();
+        services.AddSingleton<TransactionStatusService>();
         services.AddSingleton<ReportExporter>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<MainWindow>();
@@ -124,6 +126,8 @@ public partial class App : Application
             }
             if (e.Args.Contains("--keys", StringComparer.Ordinal))
                 _services.GetRequiredService<MainViewModel>().SelectedTab = 2;
+            if (e.Args.Contains("--history", StringComparer.Ordinal))
+                _services.GetRequiredService<MainViewModel>().SelectedTab = 4;
             window.Show();
         }
         catch (Exception exception)

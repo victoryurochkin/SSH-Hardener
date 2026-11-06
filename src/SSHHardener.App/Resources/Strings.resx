@@ -72,7 +72,7 @@
 <data name="ExportReport" xml:space="preserve"><value>Экспортировать отчёт…</value></data>
 <data name="LogHint" xml:space="preserve"><value>Журнал содержит этапы и результат. Секретные данные в журнал не включаются.</value></data>
 <data name="BansHeading" xml:space="preserve"><value>Блокировки fail2ban</value></data>
-<data name="BansHint" xml:space="preserve"><value>Работа с jail sshd. Для разблокировки введите точный IP-адрес.</value></data>
+<data name="BansHint" xml:space="preserve"><value>Работа с jail sshhardener-sshd. Для разблокировки введите точный IP-адрес.</value></data>
 <data name="RefreshBans" xml:space="preserve"><value>Обновить список</value></data>
 <data name="Unban" xml:space="preserve"><value>Разблокировать IP</value></data>
 <data name="BanIp" xml:space="preserve"><value>IP-адрес</value></data>
@@ -116,7 +116,34 @@
 <data name="AuditReadOnlyStatus" xml:space="preserve"><value>Аудит завершён · только просмотр (нет root/sudo)</value></data>
 <data name="SavedConnections" xml:space="preserve"><value>Сохранённые подключения</value></data>
 <data name="EmptyProfiles" xml:space="preserve"><value>Сохраните параметры подключения, чтобы быстро подключаться к этому серверу в следующий раз. Пароли в профиль не записываются.</value></data>
-<data name="EmptyBans" xml:space="preserve"><value>Подключитесь к серверу и нажмите «Обновить список», чтобы получить блокировки jail sshd.</value></data>
+<data name="EmptyBans" xml:space="preserve"><value>Подключитесь к серверу и нажмите «Обновить список», чтобы получить блокировки jail sshhardener-sshd.</value></data>
+<data name="OperationHistory" xml:space="preserve"><value>История операций</value></data>
+<data name="OperationHistoryHint" xml:space="preserve"><value>Выберите операцию, подключитесь к серверу и проверьте её состояние. Пароли вводятся заново.</value></data>
+<data name="UseOriginalConnection" xml:space="preserve"><value>Исходное подключение</value></data>
+<data name="UseNewConnection" xml:space="preserve"><value>Новое подключение</value></data>
+<data name="CheckOperation" xml:space="preserve"><value>Проверить состояние</value></data>
+<data name="HistoryEmpty" xml:space="preserve"><value>Операций пока нет. После применения здесь появится запись для восстановления.</value></data>
+<data name="HistoryNotChecked" xml:space="preserve"><value>Состояние на сервере не проверено. Подключитесь и нажмите «Проверить состояние».</value></data>
+<data name="HistoryLastConfirmed" xml:space="preserve"><value>Последнее подтверждение: {0}, {1}. Требуется повторная проверка.</value></data>
+<data name="HistoryVerified" xml:space="preserve"><value>Проверено на сервере: {0} · {1}</value></data>
+<data name="HistoryDifferentServer" xml:space="preserve"><value>Подключение не соответствует выбранной операции. Используйте её исходные или новые параметры.</value></data>
+<data name="HistoryLoadFailed" xml:space="preserve"><value>Не удалось прочитать историю операций. Новые изменения не будут применены, пока запись истории невозможна.</value></data>
+<data name="HistorySaveFailed" xml:space="preserve"><value>Не удалось обновить локальную историю. Результат операции на сервере от этого не меняется.</value></data>
+<data name="HistorySaved" xml:space="preserve"><value>Сведения об операции сохранены без паролей и парольных фраз.</value></data>
+<data name="HistoryCredentialsRequired" xml:space="preserve"><value>Параметры подставлены. Введите пароль или парольную фразу и подключитесь.</value></data>
+<data name="HistoryChecking" xml:space="preserve"><value>Проверяется состояние операции…</value></data>
+<data name="HistoryCheckFailed" xml:space="preserve"><value>Состояние операции не подтверждено. Проверьте подключение и повторите запрос.</value></data>
+<data name="HistoryRollbackUnavailable" xml:space="preserve"><value>Откат недоступен для текущего состояния или операция не является последним применением.</value></data>
+<data name="HistoryHostChanged" xml:space="preserve"><value>Ключ сервера не соответствует сохранённой операции. Подключение остановлено.</value></data>
+<data name="HistoryRollbackConfirm" xml:space="preserve"><value>Операция {0}&#10;Сервер: {1}&#10;Исходный порт: {2}, пользователь: {3}&#10;&#10;Откат может отключить текущий доступ. Продолжить?</value></data>
+<data name="HistoryStateUnknown" xml:space="preserve"><value>Неизвестно</value></data>
+<data name="HistoryStateNotFound" xml:space="preserve"><value>Операция не найдена</value></data>
+<data name="HistoryStatePending" xml:space="preserve"><value>Ожидает завершения</value></data>
+<data name="HistoryStateRollingBack" xml:space="preserve"><value>Идёт откат</value></data>
+<data name="HistoryStateRecoveryDeferred" xml:space="preserve"><value>Откат отложен</value></data>
+<data name="HistoryStateRecoveryFailed" xml:space="preserve"><value>Ошибка отката</value></data>
+<data name="HistoryStateRolledBack" xml:space="preserve"><value>Откат выполнен</value></data>
+<data name="HistoryStateCommitted" xml:space="preserve"><value>Изменения применены</value></data>
 <data name="EmptyLog" xml:space="preserve"><value>Здесь появятся этапы выполнения и результат проверки. Пока изменения не применялись.</value></data>
 <data name="RollbackComplete" xml:space="preserve"><value>Сервер подтвердил ручной откат изменений.</value></data>
 </root>

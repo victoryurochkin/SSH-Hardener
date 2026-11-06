@@ -119,7 +119,24 @@
         </TabItem>
         <TabItem Header="{Binding L[Apply]}">
           <Grid Margin="0,10,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-            <StackPanel><TextBlock Text="{Binding L[ApplyHeading]}" Style="{StaticResource Heading}" /><TextBlock Text="{Binding L[LogHint]}" Style="{StaticResource Hint}" /><ProgressBar Value="{Binding Progress, Mode=OneWay}" Minimum="0" Maximum="100" Height="8" Background="{DynamicResource BorderBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0" Foreground="{DynamicResource AccentBrush}" Margin="0,0,0,16" /></StackPanel>
+            <StackPanel>
+              <TextBlock Text="{Binding L[ApplyHeading]}" Style="{StaticResource Heading}" />
+              <Border Style="{StaticResource Card}" Padding="16" Margin="0,0,0,12"><StackPanel>
+                <TextBlock Text="{Binding L[OperationHistory]}" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,8" />
+                <TextBlock Text="{Binding L[OperationHistoryHint]}" Style="{StaticResource Hint}" FontSize="12" Margin="0,0,0,8" />
+                <ComboBox ItemsSource="{Binding Operations}" SelectedItem="{Binding SelectedOperation}" IsEnabled="{Binding Idle}" DropDownOpened="ComboBoxDropDownOpened" ToolTip="{Binding SelectedOperation}" Margin="0,0,0,8">
+                  <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" /></DataTemplate></ComboBox.ItemTemplate>
+                </ComboBox>
+                <TextBlock Text="{Binding OperationStatusText, Mode=OneWay}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="54" ToolTip="{Binding OperationStatusText}" FontSize="12" Foreground="{DynamicResource MutedBrush}" Margin="0,0,0,8" />
+                <WrapPanel>
+                  <Button Content="{Binding L[UseOriginalConnection]}" Style="{StaticResource SecondaryButton}" Command="{Binding UseOriginalConnectionCommand}" IsEnabled="{Binding CanUseOperation}" FontSize="12" MinHeight="34" Padding="12,7" />
+                  <Button Content="{Binding L[UseNewConnection]}" Style="{StaticResource SecondaryButton}" Command="{Binding UseNewConnectionCommand}" IsEnabled="{Binding CanUseOperation}" FontSize="12" MinHeight="34" Padding="12,7" />
+                  <Button Content="{Binding L[CheckOperation]}" Style="{StaticResource SecondaryButton}" Command="{Binding CheckOperationCommand}" IsEnabled="{Binding CanCheckOperation}" FontSize="12" MinHeight="34" Padding="12,7" />
+                </WrapPanel>
+              </StackPanel></Border>
+              <TextBlock Text="{Binding L[LogHint]}" Style="{StaticResource Hint}" />
+              <ProgressBar Value="{Binding Progress, Mode=OneWay}" Minimum="0" Maximum="100" Height="8" Background="{DynamicResource BorderBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0" Foreground="{DynamicResource AccentBrush}" Margin="0,0,0,16" />
+            </StackPanel>
             <Grid Grid.Row="1">
               <ListBox x:Name="ActionLog" ItemsSource="{Binding Log}" Background="{DynamicResource CardBrush}" Foreground="{DynamicResource ForegroundBrush}" BorderBrush="{DynamicResource BorderBrush}" FontFamily="Consolas" FontSize="12" ScrollViewer.HorizontalScrollBarVisibility="Auto" />
               <TextBlock Text="{Binding L[EmptyLog]}" Margin="16" VerticalAlignment="Top" IsHitTestVisible="False"><TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource Hint}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding Log.Count}" Value="0"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
