@@ -45,7 +45,11 @@
                   <StackPanel Margin="0,0,18,0"><TextBlock Text="{Binding L[Passphrase]}" /><PasswordBox x:Name="ConnectionPassphrase" PasswordChanged="ConnectionSecretChanged" /></StackPanel>
                   <StackPanel Grid.Column="1"><TextBlock Text="{Binding L[SudoPassword]}" /><PasswordBox x:Name="ConnectionSudoPassword" PasswordChanged="ConnectionSecretChanged" /></StackPanel>
                 </Grid>
-                <Button Content="{Binding L[ConnectButton]}" Command="{Binding ConnectCommand}" IsEnabled="{Binding CanConnect}" HorizontalAlignment="Left" />
+                <WrapPanel>
+                  <Button Content="{Binding L[ConnectButton]}" Command="{Binding ConnectCommand}" IsEnabled="{Binding CanConnect}" />
+                  <Button Content="{Binding L[AccessOpenSftp]}" Command="{Binding OpenSftpCommand}" IsEnabled="{Binding Idle}" Style="{StaticResource SecondaryButton}" />
+                  <Button Content="{Binding L[AccessOpenBulk]}" Command="{Binding OpenBulkCommand}" IsEnabled="{Binding Idle}" Style="{StaticResource SecondaryButton}" />
+                </WrapPanel>
               </StackPanel></Border>
               <Border Style="{StaticResource Card}"><StackPanel>
                 <TextBlock Text="{Binding L[SavedConnections]}" FontWeight="SemiBold" Margin="0,0,0,10" />
@@ -63,7 +67,7 @@
           </Grid>
         </TabItem>
         <TabItem Header="{Binding L[Configure]}">
-          <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel IsEnabled="{Binding Idle}" Margin="0,10,10,0">
+          <ScrollViewer x:Name="ConfigurationScroll" VerticalScrollBarVisibility="Auto"><StackPanel IsEnabled="{Binding Idle}" Margin="0,10,10,0">
             <Border Style="{StaticResource Card}"><StackPanel>
               <TextBlock Text="{Binding L[ConfigureHeading]}" Style="{StaticResource Heading}" /><TextBlock Text="{Binding L[ConfigureHint]}" Style="{StaticResource Hint}" />
               <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="170" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
@@ -74,16 +78,45 @@
               <TextBlock Text="{Binding L[NewPrivateKey]}" Margin="0,12,0,0" />
               <DockPanel><Button DockPanel.Dock="Right" Content="{Binding L[Browse]}" Style="{StaticResource SecondaryButton}" Command="{Binding BrowseNewKeyCommand}" Margin="10,5,0,14" /><TextBox Text="{Binding NewPrivateKey, UpdateSourceTrigger=PropertyChanged}" /></DockPanel>
               <TextBlock Text="{Binding L[NewPassphrase]}" /><PasswordBox x:Name="NewKeyPassphrase" PasswordChanged="NewKeySecretChanged" />
-              <WrapPanel><Button Content="{Binding L[GenerateKey]}" Command="{Binding GenerateKeyCommand}" /><Button Content="{Binding L[ExportPuttyKey]}" Style="{StaticResource SecondaryButton}" Command="{Binding ExportPuttyKeyCommand}" IsEnabled="{Binding CanExportPuttyKey}" /><Button Content="{Binding L[ReadPublicKey]}" Style="{StaticResource SecondaryButton}" Command="{Binding ReadPublicKeyCommand}" /><Button Content="{Binding L[ImportPublicKey]}" Style="{StaticResource SecondaryButton}" Command="{Binding ImportPublicKeyCommand}" /></WrapPanel>
+              <TextBlock Text="{Binding L[KeyAlgorithm]}" />
+              <ComboBox ItemsSource="{Binding KeyAlgorithms}" SelectedItem="{Binding KeyAlgorithm}" Width="210" HorizontalAlignment="Left" DropDownOpened="ComboBoxDropDownOpened" />
+              <TextBlock Text="{Binding L[KeyAlgorithmHint]}" Style="{StaticResource Hint}" />
+              <WrapPanel><Button Content="{Binding L[CreateKey]}" Command="{Binding GenerateKeyCommand}" /><Button Content="{Binding L[ExportPuttyKey]}" Style="{StaticResource SecondaryButton}" Command="{Binding ExportPuttyKeyCommand}" IsEnabled="{Binding CanExportPuttyKey}" /><Button Content="{Binding L[ReadPublicKey]}" Style="{StaticResource SecondaryButton}" Command="{Binding ReadPublicKeyCommand}" /><Button Content="{Binding L[ImportPublicKey]}" Style="{StaticResource SecondaryButton}" Command="{Binding ImportPublicKeyCommand}" /></WrapPanel>
               <TextBlock Text="{Binding L[KeyHint]}" Style="{StaticResource Hint}" Margin="0,10,0,14" />
               <TextBlock Text="{Binding L[NewExportPuttyHint]}" Style="{StaticResource Hint}" />
               <TextBlock Text="{Binding L[PublicKey]}" /><TextBox Text="{Binding PublicKey, UpdateSourceTrigger=PropertyChanged}" MaxLength="16384" Height="88" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" FontFamily="Consolas" FontSize="12" />
               <TextBlock Text="{Binding KeyFingerprint}" FontFamily="Consolas" FontSize="12" Margin="0,0,0,10" />
-              <CheckBox Content="{Binding L[GrantSudo]}" IsChecked="{Binding GrantSudo}" />
-              <CheckBox Content="{Binding L[NoPasswordSudo]}" IsChecked="{Binding NoPasswordSudo}" IsEnabled="{Binding GrantSudo}" />
             </StackPanel></Border>
             <Border Style="{StaticResource Card}"><StackPanel>
-              <CheckBox Content="{Binding L[DisablePassword]}" IsChecked="{Binding DisablePassword}" />
+              <TextBlock Text="{Binding L[AccessHeading]}" Style="{StaticResource Heading}" />
+              <TextBlock Text="{Binding L[AccessRoleHint]}" Style="{StaticResource Hint}" />
+              <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,18,0"><TextBlock Text="{Binding L[AccessRole]}" /><ComboBox ItemsSource="{Binding AccessChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding SelectedAccess}" DropDownOpened="ComboBoxDropDownOpened" /></StackPanel>
+                <StackPanel Grid.Column="1"><TextBlock Text="{Binding L[AccessSudoRole]}" /><ComboBox ItemsSource="{Binding SudoChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding SelectedSudoMode}" IsEnabled="{Binding CanEditSudo}" DropDownOpened="ComboBoxDropDownOpened" /></StackPanel>
+              </Grid>
+              <StackPanel><StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding UsesTargetPassword}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                <TextBlock Text="{Binding L[AccessTargetPassword]}" /><PasswordBox x:Name="TargetAccountPassword" MaxLength="256" PasswordChanged="NewKeySecretChanged" />
+                <TextBlock Text="{Binding L[AccessTargetPasswordHint]}" Style="{StaticResource Hint}" />
+              </StackPanel>
+              <StackPanel><StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsRestrictedSudo}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                <TextBlock Text="{Binding L[AccessRestrictedServices]}" /><TextBox Text="{Binding RestrictedServiceNames, UpdateSourceTrigger=PropertyChanged}" MaxLength="4096" Height="70" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" FontFamily="Consolas" FontSize="12" />
+                <CheckBox x:Name="CheckRestrictedAllowRestart" Content="{Binding L[AccessRestrictedRestart]}" IsChecked="{Binding RestrictedAllowRestart}" />
+                <TextBlock Text="{Binding L[AccessRestrictedHint]}" Style="{StaticResource Hint}" />
+              </StackPanel>
+              <CheckBox Content="{Binding L[AccessSftpReadOnly]}" IsChecked="{Binding SftpReadOnly}" IsEnabled="{Binding IsSftpOnly}" />
+              <TextBlock Text="{Binding L[AccessSftpHint]}" Style="{StaticResource Hint}" />
+              <TextBlock Text="{Binding L[AccessSourceAdministratorHint]}" Style="{StaticResource Hint}" />
+            </StackPanel></Border>
+            <Border Style="{StaticResource Card}"><StackPanel>
+              <TextBlock Text="{Binding L[AccessMfaHeading]}" Style="{StaticResource Heading}" />
+              <CheckBox Content="{Binding L[AccessEnableTotp]}" IsChecked="{Binding EnableTotp}" />
+              <TextBlock Text="{Binding L[AccessMfaHint]}" Style="{StaticResource Hint}" />
+              <Button Content="{Binding L[AccessMfaConfigure]}" Command="{Binding ConfigureMfaCommand}" IsEnabled="{Binding CanConfigureMfa}" HorizontalAlignment="Left" Style="{StaticResource SecondaryButton}" />
+              <TextBlock Text="{Binding MfaStatusText}" TextWrapping="Wrap" Margin="0,8,0,0" />
+            </StackPanel></Border>
+            <Border Style="{StaticResource Card}"><StackPanel>
+              <CheckBox Content="{Binding L[DisablePassword]}" IsChecked="{Binding DisablePassword}" ToolTip="{Binding L[AccessGlobalPasswordHint]}" />
+              <TextBlock Text="{Binding L[AccessGlobalPasswordHint]}" Style="{StaticResource Hint}" />
               <Grid Margin="0,12,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                 <TextBlock Text="{Binding L[RootPolicy]}" Margin="0,0,18,0" VerticalAlignment="Bottom" />
                 <TextBlock Grid.Column="1" Text="{Binding L[MaxAuthTries]}" VerticalAlignment="Bottom" />

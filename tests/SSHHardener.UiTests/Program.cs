@@ -52,6 +52,18 @@ internal static class Program
             application.Resources.MergedDictionaries.Add(LoadActualResources());
             SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(application.Dispatcher));
 
+            if (args.Contains("--bulk-ui", StringComparer.Ordinal))
+            {
+                var bulk = BulkUiScenario.RunAsync(directory, Path.GetDirectoryName(diagnostics)!);
+                var bulkFrame = new DispatcherFrame();
+                _ = bulk.ContinueWith(_ => application.Dispatcher.BeginInvoke(() => bulkFrame.Continue = false), TaskScheduler.Default);
+                Dispatcher.PushFrame(bulkFrame);
+                bulk.GetAwaiter().GetResult();
+                ThrowDispatcherFailures();
+                Save(diagnostics, "PASS: real WPF bulk grid/profiles/unique MFA/reentered credentials/per-host outcomes and cancellable secret dialogs. No network.");
+                return 0;
+            }
+
             var engine = new ProgressFixtureEngine();
             model = new MainViewModel(new NoNetworkFactory(), new FixtureAudit(), new FixturePlanner(), engine,
                 new KeyService(), new ProfileStore(directory), new ReportExporter(), new OperationHistoryStore(directory));
@@ -79,7 +91,9 @@ internal static class Program
             Dispatcher.PushFrame(frame);
             task.GetAwaiter().GetResult();
             ThrowDispatcherFailures();
-            Save(diagnostics, "PASS: real WPF log binding, immediate tab switch, progress callbacks, 1000-entry trim and final autoscroll. No network or production startup handlers.\n" + string.Join('\n', outcomes));
+            var networkScope = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("SSHARDENER_SFTP_TEST_CONFIG"))
+                ? "No network" : "Explicit disposable loopback SFTP fixture";
+            Save(diagnostics, "PASS: real WPF log binding, immediate tab switch, progress callbacks, 1000-entry trim and final autoscroll. " + networkScope + "; no production startup handlers.\n" + string.Join('\n', outcomes));
             Console.WriteLine("PASS: WPF apply-log regression.");
             return 0;
         }
@@ -115,6 +129,7 @@ internal static class Program
     private static async Task ExerciseAsync(Dispatcher dispatcher, MainWindow window, MainViewModel model,
         ProgressFixtureEngine engine, List<string> outcomes, string directory)
     {
+        await SftpBrowserScenario.RunAsync(dispatcher, directory, outcomes);
         _stage = "initial-real-layout";
         await DrainAsync(dispatcher, window);
         var list = (ListBox)window.FindName("ActionLog");

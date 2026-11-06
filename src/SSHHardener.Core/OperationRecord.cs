@@ -25,7 +25,8 @@ public sealed partial record OperationRecord(string TransactionId, DateTimeOffse
     string Host, int OriginalPort, string OriginalUsername, string? OriginalPrivateKeyPath,
     int NewPort, string NewUsername, string? NewPrivateKeyPath,
     string HostKeyAlgorithm, string HostKeyBase64, string HostKeyFingerprint,
-    OperationState LastConfirmedState = OperationState.Unknown, DateTimeOffset? LastConfirmedAt = null)
+    OperationState LastConfirmedState = OperationState.Unknown, DateTimeOffset? LastConfirmedAt = null,
+    AccountAccess TargetAccess = AccountAccess.Shell, bool TargetRequiresTotp = false)
 {
     [GeneratedRegex(@"\A[0-9]{14}-[a-f0-9]{12}\z", RegexOptions.CultureInvariant)]
     private static partial Regex TransactionPattern();
@@ -46,7 +47,8 @@ public sealed partial record OperationRecord(string TransactionId, DateTimeOffse
         var record = new OperationRecord(plan.TransactionId, DateTimeOffset.UtcNow,
             plan.OriginalConnection.Host, plan.OriginalConnection.Port, plan.OriginalConnection.Username,
             plan.OriginalConnection.PrivateKeyPath, plan.Options.NewPort, plan.Options.Username,
-            plan.Options.PrivateKeyPath, identity.Algorithm, identity.KeyBase64, identity.Fingerprint);
+            plan.Options.PrivateKeyPath, identity.Algorithm, identity.KeyBase64, identity.Fingerprint,
+            TargetAccess: plan.Options.AccountAccess, TargetRequiresTotp: plan.Options.EnableTotp);
         record.Validate();
         return record;
     }
@@ -56,6 +58,7 @@ public sealed partial record OperationRecord(string TransactionId, DateTimeOffse
         if (TransactionId is null || !TransactionPattern().IsMatch(TransactionId)) throw new ArgumentException("Invalid transaction identifier.");
         if (CreatedAt == default) throw new ArgumentException("An operation creation time is required.");
         if (!Enum.IsDefined(LastConfirmedState)) throw new ArgumentException("Invalid operation state.");
+        if (!Enum.IsDefined(TargetAccess)) throw new ArgumentException("Invalid target account access.");
         if (Host is null || Host.Length is 0 or > 253 || Host.Any(char.IsControl) || Host != Host.Trim() ||
             (!IPAddress.TryParse(Host, out _) && Uri.CheckHostName(Host) == UriHostNameType.Unknown))
             throw new ArgumentException("Invalid operation endpoint.");

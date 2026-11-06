@@ -39,8 +39,8 @@
 <data name="PublicKey" xml:space="preserve"><value>OpenSSH public key</value></data>
 <data name="ReadPublicKey" xml:space="preserve"><value>Read public key from private key</value></data>
 <data name="ImportPublicKey" xml:space="preserve"><value>Import .pub</value></data>
-<data name="GenerateKey" xml:space="preserve"><value>Generate RSA 4096…</value></data>
-<data name="KeyHint" xml:space="preserve"><value>No keys yet? Enter a passphrase of at least 12 characters and select “Generate RSA 4096…”. Choose PPK v3 (the default) or PKCS#8 PEM when saving. The private key and .pub file are saved together; only the public key is uploaded. Keep both files and the passphrase safe: a forgotten passphrase cannot be recovered.</value></data>
+<data name="GenerateKey" xml:space="preserve"><value>Generate key…</value></data>
+<data name="KeyHint" xml:space="preserve"><value>No keys yet? Select Ed25519 or RSA 4096, enter a passphrase of at least 12 characters, then select “Generate key…”. Choose PPK v3 or PKCS#8 PEM when saving. The private key and .pub file are saved together; only the public key is uploaded. Keep both files and the passphrase safe: a forgotten passphrase cannot be recovered.</value></data>
 <data name="ExportPuttyKey" xml:space="preserve"><value>Export for RDM / PuTTY…</value></data>
 <data name="NewExportPuttyHint" xml:space="preserve"><value>For an existing key, select its private key file above, enter its current passphrase, then select “Export for RDM / PuTTY…”. The new .ppk file contains the same key and fingerprint. You do not need to apply the server settings again.</value></data>
 <data name="PuttyKeyExported" xml:space="preserve"><value>Key exported as PPK v3. Select this .ppk file in your client; it uses the same passphrase.</value></data>
@@ -146,4 +146,136 @@
 <data name="HistoryStateCommitted" xml:space="preserve"><value>Changes applied</value></data>
 <data name="EmptyLog" xml:space="preserve"><value>Execution steps and verification results will appear here. No changes have been applied yet.</value></data>
 <data name="RollbackComplete" xml:space="preserve"><value>The server confirmed manual rollback of the changes.</value></data>
+<data name="BulkTitle" xml:space="preserve"><value>Configure multiple servers</value></data>
+<data name="BulkReady" xml:space="preserve"><value>Import hosts, audit them, and review each individual plan.</value></data>
+<data name="BulkIndependentTransactions" xml:space="preserve"><value>Each host has its own transaction and recovery. There is no atomic rollback of the entire batch. Stopping prevents new hosts from starting; active hosts finish verification or recovery.</value></data>
+<data name="BulkPolicySummary" xml:space="preserve"><value>Settings come from the main form. Target user, port, access and sudo:</value></data>
+<data name="BulkSharedKey" xml:space="preserve"><value>The same explicitly selected target key will be installed on selected hosts:</value></data>
+<data name="BulkInvalidKey" xml:space="preserve"><value>Check the target private/public key pair in the main form.</value></data>
+<data name="BulkYes" xml:space="preserve"><value>yes</value></data>
+<data name="BulkNo" xml:space="preserve"><value>no</value></data>
+<data name="BulkImportHeading" xml:space="preserve"><value>Import CSV or saved profiles</value></data>
+<data name="BulkCsvHint" xml:space="preserve"><value>CSV: host is required; port, username, privateKeyPath, id and displayName are optional. Passwords and MFA secrets are forbidden. Each host may occur only once, even with different ports.</value></data>
+<data name="BulkBrowseCsv" xml:space="preserve"><value>Open CSV…</value></data>
+<data name="BulkImportCsv" xml:space="preserve"><value>Import CSV</value></data>
+<data name="BulkImportProfiles" xml:space="preserve"><value>Load saved profiles</value></data>
+<data name="BulkImported" xml:space="preserve"><value>Imported hosts:</value></data>
+<data name="BulkHost" xml:space="preserve"><value>Name</value></data>
+<data name="BulkState" xml:space="preserve"><value>Status</value></data>
+<data name="BulkDetail" xml:space="preserve"><value>Current stage / outcome</value></data>
+<data name="BulkConcurrency" xml:space="preserve"><value>Concurrent hosts:</value></data>
+<data name="BulkStopOnFailure" xml:space="preserve"><value>Stop starting hosts after a failure</value></data>
+<data name="BulkPreview" xml:space="preserve"><value>Audit and preview</value></data>
+<data name="BulkApply" xml:space="preserve"><value>Apply reviewed plans</value></data>
+<data name="BulkCancel" xml:space="preserve"><value>Cancel</value></data>
+<data name="BulkContinue" xml:space="preserve"><value>Continue</value></data>
+<data name="BulkWaiting" xml:space="preserve"><value>Waiting for audit</value></data>
+<data name="BulkRunning" xml:space="preserve"><value>Running</value></data>
+<data name="BulkFailed" xml:space="preserve"><value>Failed</value></data>
+<data name="BulkPreviewReady" xml:space="preserve"><value>Plan ready</value></data>
+<data name="BulkReviewHost" xml:space="preserve"><value>Review this host's audit and plan below.</value></data>
+<data name="BulkReviewAll" xml:space="preserve"><value>Review each host's plan. Apply asks for credentials again, separately for each server.</value></data>
+<data name="BulkPreviewFailed" xml:space="preserve"><value>Some plans are not ready. Check credentials and host requirements, then repeat the audit.</value></data>
+<data name="BulkAuditLabel" xml:space="preserve"><value>AUDIT BEFORE CHANGES</value></data>
+<data name="BulkPlanLabel" xml:space="preserve"><value>THIS HOST'S PLAN AND RECOVERY</value></data>
+<data name="BulkSelectHost" xml:space="preserve"><value>Select a host to inspect its audit and plan.</value></data>
+<data name="BulkCancelling" xml:space="preserve"><value>Stopping new hosts. Waiting for active transactions to finish verification or recovery…</value></data>
+<data name="BulkCancelled" xml:space="preserve"><value>Cancelled. Check each individual host's outcome.</value></data>
+<data name="BulkFinished" xml:space="preserve"><value>Batch finished.</value></data>
+<data name="BulkInputFailed" xml:space="preserve"><value>Could not import hosts. Check CSV syntax, endpoints, host uniqueness and the 256-host limit.</value></data>
+<data name="BulkOperationFailed" xml:space="preserve"><value>The operation could not finish. Each host's outcome and recovery history are independent.</value></data>
+<data name="BulkStateSkipped" xml:space="preserve"><value>Skipped</value></data>
+<data name="BulkStateFailed" xml:space="preserve"><value>Stopped before changes</value></data>
+<data name="BulkStateCommitted" xml:space="preserve"><value>Commit confirmed</value></data>
+<data name="BulkStateRolledBack" xml:space="preserve"><value>Recovery confirmed</value></data>
+<data name="BulkStateUnconfirmed" xml:space="preserve"><value>Outcome unconfirmed</value></data>
+<data name="BulkCredentialsTitle" xml:space="preserve"><value>Credentials for one server</value></data>
+<data name="BulkCredentialsHint" xml:space="preserve"><value>Enter credentials only for this host. They remain in memory for the connection and are not saved to profiles or CSV.</value></data>
+<data name="BulkSourceKey" xml:space="preserve"><value>Source key passphrase (empty for an unencrypted key):</value></data>
+<data name="BulkSourcePassword" xml:space="preserve"><value>Original SSH user's password:</value></data>
+<data name="BulkSourceSudo" xml:space="preserve"><value>Original user's sudo password (empty for root / NOPASSWD):</value></data>
+<data name="BulkTargetPassword" xml:space="preserve"><value>Target account password for sudo:</value></data>
+<data name="BulkCredentialRequired" xml:space="preserve"><value>Enter the SSH password or import a profile / CSV containing a source key path.</value></data>
+<data name="BulkTargetPasswordHint" xml:space="preserve"><value>Enter the target account password. A new user's password needs at least 12 characters.</value></data>
+<data name="BulkTrustTitle" xml:space="preserve"><value>Verify a new server key</value></data>
+<data name="BulkTrustHint" xml:space="preserve"><value>Compare the fingerprint through an independent channel. Trust this host?</value></data>
+<data name="BulkApplyConfirmation" xml:space="preserve"><value>Apply the reviewed individual plans to the selected servers? Host count:</value></data>
+<data name="MfaCodeTitle" xml:space="preserve"><value>SSH one-time code</value></data>
+<data name="MfaCodeHint" xml:space="preserve"><value>Enter a current six-digit authenticator code or an eight-digit recovery code. The code is not saved.</value></data>
+<data name="MfaInvalidCode" xml:space="preserve"><value>The code does not match. Check the authenticator account and device clocks.</value></data>
+<data name="MfaEnrollmentTitle" xml:space="preserve"><value>Set up two-factor SSH access</value></data>
+<data name="MfaEnrollmentHint" xml:space="preserve"><value>Add a separate account in Google Authenticator or a compatible app: TOTP, SHA-1, six digits, 30 seconds. The secret and recovery codes are shown only in this dialog; save them securely.</value></data>
+<data name="MfaSecretLabel" xml:space="preserve"><value>Manual setup key:</value></data>
+<data name="MfaUriLabel" xml:space="preserve"><value>otpauth URI for a compatible authenticator:</value></data>
+<data name="MfaRecoveryLabel" xml:space="preserve"><value>One-time recovery codes:</value></data>
+<data name="MfaRecoverySaved" xml:space="preserve"><value>I saved the recovery codes securely</value></data>
+<data name="MfaConfirmCode" xml:space="preserve"><value>Confirm the current code from the newly added account:</value></data>
+<data name="MfaSaveRecoveryFirst" xml:space="preserve"><value>Save the recovery codes and check the confirmation first.</value></data>
+<data name="BulkTargetVerificationPassword" xml:space="preserve"><value>Existing target account password for sudo verification (empty for NOPASSWD):</value></data>
+<data name="SftpTitle" xml:space="preserve"><value>SFTP · Server files</value></data>
+<data name="SftpHint" xml:space="preserve"><value>Connect with the selected user's permissions. Passwords are not saved. Only empty folders can be deleted.</value></data>
+<data name="SftpConnect" xml:space="preserve"><value>Connect using SFTP</value></data>
+<data name="SftpUseMfa" xml:space="preserve"><value>One-time code (MFA)</value></data>
+<data name="SftpCancel" xml:space="preserve"><value>Cancel</value></data>
+<data name="SftpContinue" xml:space="preserve"><value>Continue</value></data>
+<data name="SftpGo" xml:space="preserve"><value>Open path</value></data>
+<data name="SftpUp" xml:space="preserve"><value>Up</value></data>
+<data name="SftpRefresh" xml:space="preserve"><value>Refresh</value></data>
+<data name="SftpOpen" xml:space="preserve"><value>Open folder</value></data>
+<data name="SftpUpload" xml:space="preserve"><value>Upload</value></data>
+<data name="SftpDownload" xml:space="preserve"><value>Download</value></data>
+<data name="SftpNewFolder" xml:space="preserve"><value>New folder</value></data>
+<data name="SftpRename" xml:space="preserve"><value>Rename</value></data>
+<data name="SftpDelete" xml:space="preserve"><value>Delete</value></data>
+<data name="SftpName" xml:space="preserve"><value>Name</value></data>
+<data name="SftpType" xml:space="preserve"><value>Type</value></data>
+<data name="SftpSize" xml:space="preserve"><value>Size</value></data>
+<data name="SftpModified" xml:space="preserve"><value>Modified</value></data>
+<data name="SftpFolder" xml:space="preserve"><value>Folder</value></data>
+<data name="SftpFile" xml:space="preserve"><value>File</value></data>
+<data name="SftpLink" xml:space="preserve"><value>Link</value></data>
+<data name="SftpDisconnected" xml:space="preserve"><value>Enter connection details to browse the server.</value></data>
+<data name="SftpConnecting" xml:space="preserve"><value>Connecting using SFTP…</value></data>
+<data name="SftpWorking" xml:space="preserve"><value>Working…</value></data>
+<data name="SftpTransferring" xml:space="preserve"><value>Transferring file…</value></data>
+<data name="SftpReady" xml:space="preserve"><value>Ready.</value></data>
+<data name="SftpCancelled" xml:space="preserve"><value>Operation cancelled.</value></data>
+<data name="SftpDenied" xml:space="preserve"><value>The server denied this operation. Check the selected user's permissions.</value></data>
+<data name="SftpHostChanged" xml:space="preserve"><value>The server host key changed. Verify it using a trusted console.</value></data>
+<data name="SftpFailed" xml:space="preserve"><value>The operation did not finish. Check the connection, path and permissions; reconnect if needed.</value></data>
+<data name="SftpOverwrite" xml:space="preserve"><value>The file already exists. Replace it?</value></data>
+<data name="SftpDeleteConfirm" xml:space="preserve"><value>Delete the selected item? Folders must be empty. This action cannot be undone.</value></data>
+<data name="SftpEnterName" xml:space="preserve"><value>Enter a single name without a path:</value></data>
+<data name="SftpKeyFilter" xml:space="preserve"><value>Private keys (*.ppk;*.pem;*.key)|*.ppk;*.pem;*.key|All files (*.*)|*.*</value></data>
+<data name="CreateKey" xml:space="preserve"><value>Create key</value></data>
+<data name="KeyAlgorithm" xml:space="preserve"><value>New key algorithm</value></data>
+<data name="KeyAlgorithmHint" xml:space="preserve"><value>Ed25519 is a modern compact key; RSA 4096 supports systems requiring RSA. Choose the encrypted file format when saving.</value></data>
+<data name="AccessOpenSftp" xml:space="preserve"><value>SFTP files</value></data>
+<data name="AccessOpenBulk" xml:space="preserve"><value>Multiple servers</value></data>
+<data name="AccessHeading" xml:space="preserve"><value>Target account access</value></data>
+<data name="AccessRoleHint" xml:space="preserve"><value>Choose access for the specified account. Explicitly select a sudo policy for a new account.</value></data>
+<data name="AccessRole" xml:space="preserve"><value>Access type</value></data>
+<data name="AccessSudoRole" xml:space="preserve"><value>Sudo permissions</value></data>
+<data name="AccessShell" xml:space="preserve"><value>SSH command shell</value></data>
+<data name="AccessSftpOnly" xml:space="preserve"><value>SFTP only, no shell</value></data>
+<data name="AccessSudoLegacy" xml:space="preserve"><value>Existing administrator permissions</value></data>
+<data name="AccessSudoNone" xml:space="preserve"><value>No sudo</value></data>
+<data name="AccessSudoPassword" xml:space="preserve"><value>Administrator: password sudo</value></data>
+<data name="AccessSudoPasswordless" xml:space="preserve"><value>Administrator: passwordless sudo</value></data>
+<data name="AccessSudoRestricted" xml:space="preserve"><value>Selected services only</value></data>
+<data name="AccessTargetPassword" xml:space="preserve"><value>Target account password for sudo</value></data>
+<data name="AccessTargetPasswordHint" xml:space="preserve"><value>A new password-sudo account needs at least 12 characters. For an existing account enter its current password; leave empty for NOPASSWD with existing permissions. The password is not saved.</value></data>
+<data name="AccessRestrictedServices" xml:space="preserve"><value>Exact systemd service names, one per line (for example nginx.service)</value></data>
+<data name="AccessRestrictedRestart" xml:space="preserve"><value>Allow restarting the selected services</value></data>
+<data name="AccessRestrictedHint" xml:space="preserve"><value>Selected services permit status checks. A restart runs as root: the account must not be able to modify a service's executables or configuration. Arbitrary commands and wildcards are not accepted.</value></data>
+<data name="AccessSftpReadOnly" xml:space="preserve"><value>Read-only SFTP</value></data>
+<data name="AccessSftpHint" xml:space="preserve"><value>The SFTP account is restricted to its own /uploads chroot directory, without shell, terminal or forwarding. It receives no sudo privileges.</value></data>
+<data name="AccessSourceAdministratorHint" xml:space="preserve"><value>For an SFTP or restricted account, connect with a separate administrator using a private key. A fresh administrator login and root access on the final port are checked before commit.</value></data>
+<data name="AccessMfaHeading" xml:space="preserve"><value>Two-factor SSH login</value></data>
+<data name="AccessEnableTotp" xml:space="preserve"><value>Require a key plus a TOTP code</value></data>
+<data name="AccessMfaHint" xml:space="preserve"><value>MFA applies to the selected account. Add a separate authenticator account and confirm a code. The secret and recovery codes appear only in the setup dialog; save recovery codes before closing it. Bulk setup uses a different secret for each host. Clearing the checkbox preserves existing 2FA; disabling it or rotating its secret is not supported here.</value></data>
+<data name="AccessMfaConfigure" xml:space="preserve"><value>Set up authenticator…</value></data>
+<data name="AccessMfaNotEnrolled" xml:space="preserve"><value>The authenticator has not been confirmed.</value></data>
+<data name="AccessMfaEnrolled" xml:space="preserve"><value>Authenticator confirmed. Secrets are excluded from plans, reports and profiles.</value></data>
+<data name="AccessGlobalPasswordHint" xml:space="preserve"><value>Disabling password login is a server-wide SSH policy and can affect other users. TOTP is added only to the selected account.</value></data>
 </root>

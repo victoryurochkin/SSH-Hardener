@@ -4,6 +4,36 @@ using SSHHardener.Profiles;
 
 // This is an explicit integration runner, not a test which silently passes without Docker.
 var folder = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../artifacts/integration"));
+if (args.Length > 1 && args[0] == "--totp-auth")
+{
+    await TotpAuthenticationScenario.RunAsync(args[1]);
+    return 0;
+}
+if (args.Length > 1 && args[0] == "--prepare-framed-transport")
+{
+    await FramedTransportScenario.PrepareAsync(args[1]);
+    return 0;
+}
+if (args.Length > 2 && args[0] == "--verify-framed-transport")
+{
+    await FramedTransportScenario.VerifyAsync(args[1], int.Parse(args[2], System.Globalization.CultureInfo.InvariantCulture));
+    return 0;
+}
+if (args.Length > 1 && args[0] == "--prepare-ed25519")
+{
+    await Ed25519KeyInteropScenario.PrepareAsync(args[1]);
+    return 0;
+}
+if (args.Length > 1 && args[0] == "--oracle-ed25519")
+{
+    await Ed25519KeyInteropScenario.RunOracleAsync(args[1]);
+    return 0;
+}
+if (args.Length > 3 && args[0] == "--verify-ed25519")
+{
+    await Ed25519KeyInteropScenario.VerifyAsync(args[1], args[2], int.Parse(args[3], System.Globalization.CultureInfo.InvariantCulture));
+    return 0;
+}
 if (args.Length > 1 && args[0] == "--prepare-putty")
 {
     await PuttyInteropScenario.PrepareAsync(args[1]);

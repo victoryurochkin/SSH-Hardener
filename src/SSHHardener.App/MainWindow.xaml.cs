@@ -5,6 +5,8 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using SSHHardener.Core;
+using SSHHardener.Ssh;
 
 namespace SSHHardener.App;
 
@@ -15,13 +17,39 @@ public partial class MainWindow : Window
     private DispatcherOperation? _logScrollOperation;
     private bool _logScrollDisposed;
 
-    public MainWindow(MainViewModel viewModel)
+    public MainWindow(MainViewModel viewModel, ISftpSessionFactory? sftpFactory = null)
     {
         _viewModel = viewModel;
         InitializeComponent();
         DataContext = viewModel;
         viewModel.ReadConnectionSecrets = () => new ConnectionSecrets(ConnectionPassword.Password, ConnectionPassphrase.Password, ConnectionSudoPassword.Password);
         viewModel.ReadNewKeyPassphrase = () => NewKeyPassphrase.Password;
+        viewModel.ReadTargetAccountPassword = () => TargetAccountPassword.Password;
+        viewModel.RequestOneTimeCode = async (label, ct) =>
+        {
+            var code = await Dispatcher.InvokeAsync(() => FeatureDialogs.ShowOtp(this, viewModel.L, label, ct));
+            return code ?? throw new OperationCanceledException(ct);
+        };
+        viewModel.RequestMfaEnrollment = async ct => await Dispatcher.InvokeAsync(() =>
+            FeatureDialogs.EnrollTotp(this, viewModel.L, viewModel.NewUsername + "@" + viewModel.Host, ct));
+        viewModel.OpenSftpAction = (initial, ct) =>
+        {
+            var model = new SftpBrowserViewModel(sftpFactory ?? new SftpSessionFactory(new KnownHostsStore()), initial, viewModel.L);
+            var window = new SftpWindow(model) { Owner = this };
+            using var cancellation = ct.Register(() => Dispatcher.BeginInvoke(new Action(() => { if (window.IsVisible) window.Close(); })));
+            ct.ThrowIfCancellationRequested();
+            window.ShowDialog();
+            return Task.CompletedTask;
+        };
+        viewModel.OpenBulkAction = (template, ct) =>
+        {
+            var model = viewModel.CreateBulkViewModel(template);
+            var window = new BulkWindow(model) { Owner = this };
+            using var cancellation = ct.Register(() => Dispatcher.BeginInvoke(new Action(() => { if (window.IsVisible) window.Close(); })));
+            ct.ThrowIfCancellationRequested();
+            window.ShowDialog();
+            return Task.CompletedTask;
+        };
         viewModel.ClearConnectionSecrets = () => { ConnectionPassword.Clear(); ConnectionPassphrase.Clear(); ConnectionSudoPassword.Clear(); };
         viewModel.Log.CollectionChanged += OnLogCollectionChanged;
         ActionLog.Loaded += OnActionLogLoaded;
@@ -32,6 +60,7 @@ public partial class MainWindow : Window
 
     private void ConnectionSecretChanged(object sender, RoutedEventArgs e) => _viewModel?.InvalidateConnection();
     private void NewKeySecretChanged(object sender, RoutedEventArgs e) => _viewModel?.InvalidatePlan();
+    private void TargetAccountSecretChanged(object sender, RoutedEventArgs e) => _viewModel?.InvalidatePlan();
 
     private void OnLogCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) => ScheduleLogScroll();
 
@@ -90,6 +119,8 @@ public partial class MainWindow : Window
         if (_viewModel.L.English != english) _viewModel.LanguageCommand.Execute(null);
         _viewModel.SelectedTab = tab;
     }
+
+    public void ScrollPreview(double offset) => ConfigurationScroll.ScrollToVerticalOffset(offset);
 
     private void SetTheme(bool dark)
     {

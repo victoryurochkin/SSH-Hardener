@@ -133,7 +133,9 @@ public sealed class KeyAndReportTests : IDisposable
         {
             MaxAuthTries = 4, ConfigureFail2Ban = true, MaxRetry = 5, FindTimeSeconds = 900, BanSeconds = 7200,
             DisablePasswordAuthentication = false, CloseOldPort = true,
-            KeyPassphrase = "new-key-secret", NewUserSudoPassword = "new-sudo-secret", PrivateKeyPath = "new-private-path.pem"
+            KeyPassphrase = "new-key-secret", NewUserSudoPassword = "new-sudo-secret", PrivateKeyPath = "new-private-path.pem",
+            TotpSecret = "totp-seed-secret", TotpRecoveryCodes = ["recovery-code-secret"],
+            VerificationSudoPassword = "verification-sudo-secret"
         };
         var plan = new HardeningPlan("policy-transaction", audit, connection, options, [], []);
         var path = Path.Combine(_folder, "requested-policy.json");
@@ -144,7 +146,9 @@ public sealed class KeyAndReportTests : IDisposable
         using var parsed = JsonDocument.Parse(content);
         Assert.Equal("pre-change", parsed.RootElement.GetProperty("AuditSnapshotKind").GetString());
         var policy = parsed.RootElement.GetProperty("RequestedPolicy");
-        Assert.Equal(7, policy.EnumerateObject().Count());
+        Assert.Equal(new[] { "AccountAccess", "BanSeconds", "CloseOldPort", "DisablePasswordAuthentication", "Fail2banEnabled",
+            "FindTimeSeconds", "MaxAuthTries", "MaxRetry", "RestrictedCommands", "SftpReadOnly", "SudoPolicy", "TotpEnabled" },
+            policy.EnumerateObject().Select(x => x.Name).OrderBy(x => x, StringComparer.Ordinal).ToArray());
         Assert.Equal(4, policy.GetProperty("MaxAuthTries").GetInt32());
         Assert.True(policy.GetProperty("Fail2banEnabled").GetBoolean());
         Assert.Equal(5, policy.GetProperty("MaxRetry").GetInt32());
@@ -152,7 +156,7 @@ public sealed class KeyAndReportTests : IDisposable
         Assert.Equal(7200, policy.GetProperty("BanSeconds").GetInt32());
         Assert.False(policy.GetProperty("DisablePasswordAuthentication").GetBoolean());
         Assert.True(policy.GetProperty("CloseOldPort").GetBoolean());
-        foreach (var secret in new[] { "password-secret", "connection-private-path.pem", "connection-key-secret", "sudo-secret", "new-key-secret", "new-sudo-secret", "new-private-path.pem" })
+        foreach (var secret in new[] { "password-secret", "connection-private-path.pem", "connection-key-secret", "sudo-secret", "new-key-secret", "new-sudo-secret", "new-private-path.pem", "totp-seed-secret", "recovery-code-secret", "verification-sudo-secret" })
             Assert.DoesNotContain(secret, content);
         Assert.False(parsed.RootElement.TryGetProperty("OriginalConnection", out _));
         Assert.False(parsed.RootElement.TryGetProperty("Options", out _));
@@ -167,6 +171,40 @@ public sealed class KeyAndReportTests : IDisposable
         Assert.Equal("independent-audit", parsed.RootElement.GetProperty("AuditSnapshotKind").GetString());
         Assert.Equal(JsonValueKind.Null, parsed.RootElement.GetProperty("RequestedPolicy").ValueKind);
         Assert.Equal(JsonValueKind.Null, parsed.RootElement.GetProperty("Transaction").ValueKind);
+    }
+
+    [Theory]
+    [InlineData(false, "sftp -P 22022 -i <private-key-file> sshadmin@server.example", "sftp")]
+    [InlineData(true, "ssh -p 2222 -i <private-key-file> controller@server.example", "ssh")]
+    public async Task SftpOutcomeCommandUsesFileTransferOnlyUntilRollbackRestoresAdministrator(bool rolledBack, string command, string kind)
+    {
+        var audit = new ServerAudit();
+        var plan = new HardeningPlan("sftp-report", audit,
+            new ConnectionOptions("server.example", 2222, "controller", PrivateKeyPath: "source-secret-path"),
+            InputValidatorsTests.ValidOptions with { AccountAccess = AccountAccess.SftpOnly, SudoMode = SudoPolicyMode.None }, [], []);
+        var result = new HardeningResult(plan.TransactionId, !rolledBack, rolledBack, "Confirmed", DateTimeOffset.UtcNow);
+        var path = Path.Combine(_folder, "sftp.md");
+        await new ReportExporter().ExportAsync(path, audit, plan, result);
+        Assert.Contains(command, await File.ReadAllTextAsync(path));
+        await new ReportExporter().ExportAsync(Path.ChangeExtension(path, ".json"), audit, plan, result);
+        using var json = JsonDocument.Parse(await File.ReadAllTextAsync(Path.ChangeExtension(path, ".json")));
+        Assert.Equal(kind, json.RootElement.GetProperty("ConnectionKind").GetString());
+    }
+
+    [Fact]
+    public void CredentialModelsDoNotExposeNewSecretsThroughSerializationOrRecordFormatting()
+    {
+        var connection = new ConnectionOptions("server.example", 22, "user", "conn-secret", Passphrase: "key-secret", SudoPassword: "sudo-secret")
+        { OneTimeCodeProvider = _ => Task.FromResult("123456") };
+        var options = InputValidatorsTests.ValidOptions with
+        {
+            KeyPassphrase = "target-key-secret", NewUserSudoPassword = "target-password-secret", VerificationSudoPassword = "verify-sudo-secret",
+            EnableTotp = true, TotpSecret = "totp-seed-secret", TotpEnrollmentCode = "enrollment-code-secret", TotpRecoveryCodes = ["recovery-code-secret"],
+            VerificationOneTimeCodeProvider = _ => Task.FromResult("123456")
+        };
+        var output = connection + "\n" + options + "\n" + JsonSerializer.Serialize(connection) + "\n" + JsonSerializer.Serialize(options);
+        foreach (var secret in new[] { "conn-secret", "key-secret", "sudo-secret", "target-key-secret", "target-password-secret", "verify-sudo-secret", "totp-seed-secret", "enrollment-code-secret", "recovery-code-secret" })
+            Assert.DoesNotContain(secret, output);
     }
 
     public void Dispose()

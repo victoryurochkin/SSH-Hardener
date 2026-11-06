@@ -7,13 +7,12 @@ using Org.BouncyCastle.Crypto.Parameters;
 namespace SSHHardener.Ssh;
 
 /// <summary>
-/// Serializes the documented PuTTY PPK v3 RSA container. Cryptographic primitives
+/// Serializes the documented PuTTY PPK v3 RSA and Ed25519 containers. Cryptographic primitives
 /// are provided by Bouncy Castle and the framework; no custom cipher or KDF.
 /// https://the.earth.li/~sgtatham/putty/0.85/htmldoc/AppendixC.html
 /// </summary>
 internal static class PuttyKeyWriter
 {
-    private const string Algorithm = "ssh-rsa";
     private const string Encryption = "aes256-cbc";
     private const string Comment = "@victoryur-SSHHardener";
     private const int MemoryKiB = 65_536;
@@ -27,6 +26,40 @@ internal static class PuttyKeyWriter
             throw new CryptographicException("A complete two-prime RSA private key is required.");
         using var publicData = new MemoryStream();
         using var privateData = new MemoryStream();
+        try
+        {
+            WriteString(publicData, Encoding.ASCII.GetBytes("ssh-rsa"));
+            WriteMpint(publicData, parameters.Exponent);
+            WriteMpint(publicData, parameters.Modulus);
+            WriteMpint(privateData, parameters.D);
+            WriteMpint(privateData, parameters.P);
+            WriteMpint(privateData, parameters.Q);
+            WriteMpint(privateData, parameters.InverseQ);
+            return Encode("ssh-rsa", publicData, privateData, passphrase, ct);
+        }
+        finally { CryptographicOperations.ZeroMemory(privateData.GetBuffer()); }
+    }
+
+    internal static byte[] EncodeEd25519(byte[] seed, byte[] publicKey, string passphrase, CancellationToken ct)
+    {
+        if (seed.Length != 32 || publicKey.Length != 32) throw new CryptographicException("Ed25519 requires a 32-byte seed and public key.");
+        using var publicData = new MemoryStream();
+        using var privateData = new MemoryStream();
+        try
+        {
+            WriteString(publicData, Encoding.ASCII.GetBytes("ssh-ed25519"));
+            WriteString(publicData, publicKey);
+            // PuTTY and SSH.NET store the raw 32-byte seed as an SSH binary string.
+            // Do not add mpint sign padding or reverse its bytes.
+            WriteString(privateData, seed);
+            return Encode("ssh-ed25519", publicData, privateData, passphrase, ct);
+        }
+        finally { CryptographicOperations.ZeroMemory(privateData.GetBuffer()); }
+    }
+
+    private static byte[] Encode(string algorithm, MemoryStream publicData, MemoryStream privateData,
+        string passphrase, CancellationToken ct)
+    {
         using var macData = new MemoryStream();
         byte[]? passwordBytes = null, derived = null, privatePlaintext = null;
         byte[]? cipherKey = null, cipherIv = null, macKey = null;
@@ -35,14 +68,6 @@ internal static class PuttyKeyWriter
         try
         {
             ct.ThrowIfCancellationRequested();
-            WriteString(publicData, Encoding.ASCII.GetBytes(Algorithm));
-            WriteMpint(publicData, parameters.Exponent);
-            WriteMpint(publicData, parameters.Modulus);
-            // PPK's private RSA section excludes the public e/n values.
-            WriteMpint(privateData, parameters.D);
-            WriteMpint(privateData, parameters.P);
-            WriteMpint(privateData, parameters.Q);
-            WriteMpint(privateData, parameters.InverseQ);
             var meaningfulLength = checked((int)privateData.Length);
             privatePlaintext = new byte[checked((meaningfulLength + 15) / 16 * 16)];
             privateData.GetBuffer().AsSpan(0, meaningfulLength).CopyTo(privatePlaintext);
@@ -65,7 +90,7 @@ internal static class PuttyKeyWriter
             macKey = derived.AsSpan(48, 32).ToArray();
 
             var publicBlob = publicData.ToArray();
-            WriteString(macData, Encoding.ASCII.GetBytes(Algorithm));
+            WriteString(macData, Encoding.ASCII.GetBytes(algorithm));
             WriteString(macData, Encoding.ASCII.GetBytes(Encryption));
             WriteString(macData, Encoding.UTF8.GetBytes(Comment));
             WriteString(macData, publicBlob);
@@ -78,7 +103,7 @@ internal static class PuttyKeyWriter
                 ciphertext = aes.EncryptCbc(privatePlaintext, cipherIv, PaddingMode.None);
             }
             var text = new StringBuilder();
-            text.Append("PuTTY-User-Key-File-3: ").Append(Algorithm).Append('\n')
+            text.Append("PuTTY-User-Key-File-3: ").Append(algorithm).Append('\n')
                 .Append("Encryption: ").Append(Encryption).Append('\n')
                 .Append("Comment: ").Append(Comment).Append('\n');
             AppendBase64(text, "Public-Lines", publicBlob);

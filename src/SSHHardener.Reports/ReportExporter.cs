@@ -20,6 +20,7 @@ public sealed class ReportExporter
         var connectionPort = rollbackConfirmed ? plan!.OriginalConnection.Port : plan?.Options.NewPort;
         var connectionUser = rollbackConfirmed ? plan!.OriginalConnection.Username : plan?.Options.Username;
         var usesPrivateKey = plan is not null && (!rollbackConfirmed || !string.IsNullOrWhiteSpace(plan.OriginalConnection.PrivateKeyPath));
+        var sftpConnection = commitConfirmed && plan!.Options.AccountAccess == AccountAccess.SftpOnly;
         // Explicit allowlist: never serialize either credential-bearing connection/options object.
         var connection = plan is null ? null : new
         {
@@ -42,7 +43,12 @@ public sealed class ReportExporter
             plan.Options.FindTimeSeconds,
             plan.Options.BanSeconds,
             plan.Options.DisablePasswordAuthentication,
-            plan.Options.CloseOldPort
+            plan.Options.CloseOldPort,
+            AccountAccess = plan.Options.AccountAccess.ToString(),
+            SudoPolicy = AccessPolicy.EffectiveSudo(plan.Options).ToString(),
+            plan.Options.SftpReadOnly,
+            TotpEnabled = plan.Options.EnableTotp,
+            RestrictedCommands = plan.Options.RestrictedSudoCommands.Select(x => new { x.Executable, x.Arguments }).ToArray()
         };
         var lines = new StringBuilder();
         lines.AppendLine("# SSH-Hardener — report").AppendLine().AppendLine("Author: @victoryur");
@@ -73,8 +79,10 @@ public sealed class ReportExporter
                 lines.AppendLine("```text");
                 // Connection names are validated at planning; real private-key paths are never exported.
                 var identityArgument = usesPrivateKey ? " -i <private-key-file>" : "";
-                lines.AppendLine($"ssh -p {connectionPort}{identityArgument} {connectionUser}@{plan.OriginalConnection.Host}");
-                lines.AppendLine("```").AppendLine("```sshconfig");
+                lines.AppendLine($"{(sftpConnection ? "sftp -P" : "ssh -p")} {connectionPort}{identityArgument} {connectionUser}@{plan.OriginalConnection.Host}");
+                lines.AppendLine("```");
+                if (sftpConnection) lines.AppendLine("This account permits SFTP only. Use the separate administrator connection for server management and rollback.");
+                lines.AppendLine("```sshconfig");
                 lines.AppendLine($"Host hardened-server\n    HostName {plan.OriginalConnection.Host}\n    Port {connectionPort}\n    User {connectionUser}");
                 if (usesPrivateKey) lines.AppendLine("    IdentityFile <private-key-file>");
                 lines.AppendLine("```");
@@ -96,6 +104,7 @@ public sealed class ReportExporter
             ".json" => JsonSerializer.Serialize(new { Author = "@victoryur", AuditSnapshotKind = auditSnapshotKind,
                 AuditSnapshotNote = auditSnapshotNote, Audit = audit, Result = result, RequestedPolicy = requestedPolicy,
                 Transaction = transactionId, ConnectionBasis = connectionBasis, Connection = connection,
+                ConnectionKind = connection is null ? null : sftpConnection ? "sftp" : "ssh",
                 Port = connectionPort, User = connectionUser }, new JsonSerializerOptions { WriteIndented = true }),
             ".md" => markdown,
             _ => throw new ArgumentException("Choose .md, .html or .json. PDF can be printed from HTML.")

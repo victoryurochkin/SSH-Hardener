@@ -26,6 +26,8 @@ public partial class App : Application
         var services = new ServiceCollection();
         services.AddSingleton<KnownHostsStore>();
         services.AddSingleton<IRemoteSessionFactory, SshRemoteSessionFactory>();
+        services.AddSingleton<ISftpSessionFactory, SftpSessionFactory>();
+        services.AddSingleton<ITargetAccessVerifier, TargetAccessVerifier>();
         services.AddSingleton<IAuditService, AuditService>();
         services.AddSingleton<IPlanBuilder, PlanBuilder>();
         services.AddSingleton<IHardeningEngine, HardeningEngine>();
@@ -96,6 +98,9 @@ public partial class App : Application
                 window.Width = width;
                 window.Height = height;
                 window.ConfigurePreview(e.Args.Contains("--dark", StringComparer.Ordinal), e.Args.Contains("--english", StringComparer.Ordinal), tab);
+                var previewModel = _services.GetRequiredService<MainViewModel>();
+                if (e.Args.Contains("--restricted-preview", StringComparer.Ordinal)) previewModel.SelectedSudoMode = SudoPolicyMode.Restricted;
+                if (e.Args.Contains("--sftp-preview", StringComparer.Ordinal)) previewModel.SelectedAccess = AccountAccess.SftpOnly;
                 // Construct and lay out the actual controls/resources without showing a window or connecting.
                 window.Measure(new Size(width, height));
                 window.Arrange(new Rect(0, 0, width, height));
@@ -108,6 +113,9 @@ public partial class App : Application
                     var visual = window.Content as FrameworkElement ?? throw new InvalidOperationException("Window has no renderable content.");
                     visual.Measure(new Size(width, height));
                     visual.Arrange(new Rect(0, 0, width, height));
+                    visual.UpdateLayout();
+                    Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                    window.ScrollPreview(ReadPreviewNumber(e.Args, "--scroll", 0));
                     visual.UpdateLayout();
                     Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
                     if (selfTestFailed) return;

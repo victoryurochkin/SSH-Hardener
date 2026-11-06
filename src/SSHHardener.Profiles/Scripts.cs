@@ -29,6 +29,13 @@ internal static partial class Scripts
         maxauthtries=@@MAXAUTHTRIES@@
         package_manager=@@PACKAGE_MANAGER@@
         minutes=@@MINUTES@@
+        access_policy_enabled=@@ACCESS_POLICY_ENABLED@@
+        sudo_mode=@@SUDO_MODE@@
+        account_access=@@ACCOUNT_ACCESS@@
+        sftp_readonly=@@SFTP_READONLY@@
+        use_totp=@@USE_TOTP@@
+        control_user=@@CONTROL_USER@@
+        restricted_commands=@@RESTRICTED_COMMANDS@@
         base=/var/lib/ssh-hardener
         tx="$base/transactions/$id"
         timer="ssh-hardener-$id.timer"
@@ -131,7 +138,10 @@ internal static partial class Scripts
         for file in /etc/ssh/sshd_config /etc/ssh/sshd_config.d/*.conf; do
           [ -e "$file" ] || continue
           [ -f "$file" ] && [ ! -L "$file" ] || fail 'Unsafe SSH include file.'
-          if grep -Eiq '^[[:space:]]*(Match|ListenAddress)[[:space:]]' "$file"; then fail 'Match blocks and explicit ListenAddress require manual handling.'; fi
+          if [ "$file" = /etc/ssh/sshd_config ]; then
+            global_config=$(access_policy_base_config "$file") || fail 'The SSH access policy is not owned or has changed.'
+          else global_config=$(cat "$file") || fail 'Cannot read SSH include.'; fi
+          if printf '%s\n' "$global_config" | grep -Eiq '^[[:space:]]*(Match|ListenAddress)[[:space:]]'; then fail 'Foreign Match blocks and explicit ListenAddress require manual handling.'; fi
           if [ "$file" = /etc/ssh/sshd_config ]; then
             awk 'tolower($1)=="include" {if(NF!=2 || $2!="/etc/ssh/sshd_config.d/*.conf")exit 1}' "$file" || fail 'Unsupported SSH Include topology.'
           else
@@ -221,6 +231,7 @@ internal static partial class Scripts
         SSHARDENER_ROLLBACK_SCRIPT
         chmod 0700 "$tx/rollback.sh"
         /bin/sh -n "$tx/rollback.sh"
+        @@ACCESS_ARM_BODY@@
         cat > "/etc/systemd/system/$recovery" <<EOF
         [Unit]
         Description=SSHHardener transaction recovery $id
@@ -385,7 +396,9 @@ internal static partial class Scripts
             if [ "$password_policy" = no ]; then printf 'PasswordAuthentication no\nKbdInteractiveAuthentication no\n' >> "$candidate"; fi
             if [ "$forwarding_policy" = no ]; then printf 'X11Forwarding no\nAllowAgentForwarding no\nAllowTcpForwarding no\n' >> "$candidate"; fi
           fi
-          awk 'tolower($1)!="port" && $0 !~ /^# SSHHardener managed transaction / {print}' "$tx/sshd_config.original" >> "$candidate"
+          access_policy_base_config "$tx/sshd_config.original" > "$tx/access-base.current" || fail 'Cannot validate the original managed account policies.'
+          awk 'tolower($1)!="port" && $0 !~ /^# SSHHardener managed transaction / {print}' "$tx/access-base.current" >> "$candidate"
+          access_policy_append_match "$candidate" "$phase" || fail 'Cannot append the managed account policies.'
           chmod --reference=/etc/ssh/sshd_config "$candidate"
           chown --reference=/etc/ssh/sshd_config "$candidate"
           /usr/sbin/sshd -t -f "$candidate" || { rm -f "$candidate"; fail 'Candidate SSH configuration failed validation.'; }
@@ -395,7 +408,10 @@ internal static partial class Scripts
           if [ "$use_fail2ban" = yes ]; then grep -qx 'loglevel VERBOSE' "$tx/effective-$phase" || fail 'SSH verbose authentication logging is required for reliable failed-key accounting.'; fi
           if [ "$phase" = final ]; then grep -qx "maxauthtries $maxauthtries" "$tx/effective-$phase" || fail 'The requested per-connection SSH authentication limit is not effective.'; fi
           if [ "$phase" = final ] && [ "$password_policy" = no ]; then
-            grep -qx 'passwordauthentication no' "$tx/effective-$phase" && grep -qx 'kbdinteractiveauthentication no' "$tx/effective-$phase" || fail 'Password authentication remains effective.'
+            grep -qx 'passwordauthentication no' "$tx/effective-$phase" || fail 'Password authentication remains effective.'
+            if [ "$(access_policy_target_totp)" = yes ]; then
+              grep -qx 'kbdinteractiveauthentication yes' "$tx/effective-$phase" && grep -qx 'authenticationmethods publickey,keyboard-interactive:pam' "$tx/effective-$phase" || fail 'The required two-factor authentication policy is not effective.'
+            else grep -qx 'kbdinteractiveauthentication no' "$tx/effective-$phase" || fail 'Keyboard-interactive authentication remains effective.'; fi
           fi
           ports=$(awk '$1=="port"{print $2}' "$tx/effective-$phase" | sort -nu | tr '\n' ' ')
           expected="$port "
@@ -490,6 +506,7 @@ internal static partial class Scripts
         # Recovery attempts every independent restoration even if the disk is full
         # or a less important cleanup step fails.
         set +e
+        @@ACCESS_ROLLBACK_BODY@@
         if [ -f "$tx/main-changed" ]; then
           restore=$(mktemp /etc/ssh/.sshhardener-restore.XXXXXX)
           if cp -p "$tx/sshd_config.original" "$restore" && /usr/sbin/sshd -t -f "$restore"; then

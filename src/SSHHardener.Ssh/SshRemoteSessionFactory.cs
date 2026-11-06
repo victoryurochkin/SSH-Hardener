@@ -17,21 +17,8 @@ public sealed class SshRemoteSessionFactory(KnownHostsStore knownHosts) : IRemot
             || options.Host.Any(char.IsControl) || options.Port is < 1 or > 65535
             || !Regex.IsMatch(options.Username, @"\A[a-zA-Z_][a-zA-Z0-9_.-]{0,63}\$?\z", RegexOptions.CultureInvariant))
             throw new ArgumentException("Invalid SSH endpoint or user.");
-        var methods = new List<AuthenticationMethod>();
-        PrivateKeyFile? key = null;
-        if (!string.IsNullOrWhiteSpace(options.PrivateKeyPath))
-        {
-            key = new PrivateKeyFile(options.PrivateKeyPath, options.Passphrase);
-            methods.Add(new PrivateKeyAuthenticationMethod(options.Username, key));
-        }
-        else if (options.Password is not null)
-            methods.Add(new PasswordAuthenticationMethod(options.Username, options.Password));
-        else throw new ArgumentException("A private key or password is required.");
-        var info = new ConnectionInfo(options.Host, options.Port, options.Username, methods.ToArray())
-        {
-            Timeout = TimeSpan.FromSeconds(20), RetryAttempts = 3
-        };
-        SshAlgorithmPolicy.Apply(info);
+        var authentication = SshAuthentication.Create(options, cancellationToken);
+        var info = authentication.ConnectionInfo;
         var client = new SshClient(info) { KeepAliveInterval = TimeSpan.FromSeconds(20) };
         HostIdentity? identity = null;
         Exception? verificationError = null;
@@ -53,13 +40,15 @@ public sealed class SshRemoteSessionFactory(KnownHostsStore knownHosts) : IRemot
             // Host-key callbacks run on SSH.NET's worker. A UI confirmation must marshal to Dispatcher.
             await Task.Run(() => client.ConnectAsync(cancellationToken), cancellationToken).ConfigureAwait(false);
             if (identity is null) throw new InvalidOperationException("Server identity was not established.");
-            return new SshRemoteSession(client, key, options, identity);
+            return new SshRemoteSession(client, authentication, options, identity);
         }
         catch
         {
-            client.Dispose(); key?.Dispose();
+            client.Dispose(); authentication.Dispose();
             if (verificationError is HostKeyChangedException changed) throw changed;
             if (verificationError is not null) throw new InvalidOperationException("SSH host identity verification failed.", verificationError);
+            if (authentication.ChallengeError is OperationCanceledException cancelled) throw cancelled;
+            if (authentication.ChallengeError is not null) throw new InvalidOperationException("Interactive authentication was not completed.", authentication.ChallengeError);
             throw;
         }
     }
@@ -81,55 +70,94 @@ public static class SshAlgorithmPolicy
     }
 }
 
-internal sealed class SshRemoteSession(SshClient client, PrivateKeyFile? key,
-    ConnectionOptions options, HostIdentity identity) : IRemoteSession
+internal sealed class SshRemoteSession(SshClient client, SshAuthenticationContext authentication,
+    ConnectionOptions options, HostIdentity identity) : IRemoteSession, IRemoteSensitiveSession
 {
     private readonly SemaphoreSlim _commands = new(1, 1);
     public ConnectionOptions Options { get; } = options;
     public HostIdentity Identity { get; } = identity;
 
-    public async Task<CommandResult> ExecuteAsync(string script, bool privileged, CancellationToken cancellationToken)
+    public async Task<CommandResult> ExecuteSensitiveAsync(string script, ReadOnlyMemory<byte> input,
+        bool privileged, CancellationToken cancellationToken)
     {
-        if (script.Contains('\0')) throw new ArgumentException("NUL in remote script.");
+        if (script.Contains('\0') || input.Length > 65536) throw new ArgumentException("Invalid sensitive-input operation.");
+        var scriptBytes = Encoding.UTF8.GetBytes(script.Replace("\r\n", "\n") + "\n");
+        if (scriptBytes.Length > 2 * 1024 * 1024) throw new ArgumentException("The remote script exceeds the supported size.");
         await _commands.WaitAsync(cancellationToken).ConfigureAwait(false);
+        byte[]? combined = null;
+        byte[]? prefix = null;
         try
         {
-            // Script and sudo password are transmitted via the SSH channel's stdin, never argv.
-            // sudo -S consumes one password line only when needed; validate first on a separate channel
-            // so no shell script can accidentally become its password.
+            // A fixed wrapper receives script-length, script and separate sensitive data through stdin.
+            // Long scripts and credentials never become process arguments. The temporary file holds
+            // reviewed script bytes only, is created privately, and is removed when the wrapper exits.
+            var command = "/bin/sh -c " + SSHHardener.Core.Shell.Quote(FramedInputWrapper);
             if (privileged && Options.Username != "root")
             {
-                var probe = await RunAsync("sudo -n -v", "", cancellationToken).ConfigureAwait(false);
-                if (probe.ExitCode != 0)
+                var probe = await RunAsync("sudo -n /bin/sh -c 'exit 0'", "", cancellationToken).ConfigureAwait(false);
+                if (probe.ExitCode == 0) command = "sudo -n " + command;
+                else
                 {
-                    var secret = Options.SudoPassword ?? Options.Password;
-                    if (secret is null || secret.Contains('\n') || secret.Contains('\r'))
-                        throw new InvalidOperationException("sudo requires a password. Enter it in connection settings; requiretty-only sudo is unsupported.");
-                    var validated = await RunAsync("sudo -S -p '' -v", secret + "\n", cancellationToken).ConfigureAwait(false);
-                    if (validated.ExitCode != 0) throw new InvalidOperationException("sudo authentication failed or a terminal is required.");
+                    var password = Options.SudoPassword ?? Options.Password;
+                    if (string.IsNullOrEmpty(password) || password.Any(x => x is '\r' or '\n' or '\0'))
+                        throw new InvalidOperationException("A valid administrator sudo password is required for this operation.");
+                    // Invalidate a PASSWD timestamp so sudo consumes exactly one password line.
+                    // NOPASSWD takes the successful -n path above and receives no password prefix.
+                    command = "sudo -k -S -p '' " + command;
+                    prefix = Encoding.UTF8.GetBytes(password + "\n");
                 }
             }
-            // Sudo tickets can be per-terminal/channel. Use -S with a single password prefix if
-            // -n cannot run the exact target; the wrapper reads the script only after sudo succeeds.
-            if (privileged && Options.Username != "root")
+            var header = Encoding.ASCII.GetBytes(scriptBytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n");
+            var offset = prefix?.Length ?? 0;
+            combined = new byte[offset + header.Length + scriptBytes.Length + input.Length];
+            prefix?.CopyTo(combined, 0);
+            header.CopyTo(combined, offset); offset += header.Length;
+            scriptBytes.CopyTo(combined, offset); offset += scriptBytes.Length;
+            input.Span.CopyTo(combined.AsSpan(offset));
+            using var cmd = client.CreateCommand(command);
+            cmd.CommandTimeout = TimeSpan.FromMinutes(3);
+            var execution = cmd.ExecuteAsync(cancellationToken);
+            try
             {
-                var check = await RunAsync("sudo -n /bin/sh -c 'exit 0'", "", cancellationToken).ConfigureAwait(false);
-                if (check.ExitCode != 0)
-                {
-                    var secret = Options.SudoPassword ?? Options.Password;
-                    if (secret is null) throw new InvalidOperationException("Passwordless privileged shell is unavailable.");
-                    // Isolate the password from sh stdin using a fixed pipe reader and -c script data.
-                    // The encoded script contains no credentials. Password remains stdin only.
-                    var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(script));
-                    var command = "sudo -S -p '' /bin/sh -c 'printf %s " + encoded + " | base64 -d | /bin/sh -s'";
-                    return await RunAsync(command, secret + "\n", cancellationToken).ConfigureAwait(false);
-                }
+                using var stream = cmd.CreateInputStream();
+                await stream.WriteAsync(combined, cancellationToken).ConfigureAwait(false);
             }
-            return await RunAsync(privileged && Options.Username != "root" ? "sudo -n /bin/sh -s" : "/bin/sh -s",
-                script.Replace("\r\n", "\n") + "\n", cancellationToken).ConfigureAwait(false);
+            catch (InvalidOperationException) when (execution.IsCompleted) { }
+            await execution.ConfigureAwait(false);
+            return new CommandResult(cmd.ExitStatus ?? -1, cmd.Result, cmd.Error);
         }
-        finally { _commands.Release(); }
+        finally
+        {
+            if (combined is not null) CryptographicOperations.ZeroMemory(combined);
+            if (prefix is not null) CryptographicOperations.ZeroMemory(prefix);
+            CryptographicOperations.ZeroMemory(scriptBytes);
+            _commands.Release();
+        }
     }
+
+    public Task<CommandResult> ExecuteAsync(string script, bool privileged, CancellationToken cancellationToken) =>
+        ExecuteSensitiveAsync(script, ReadOnlyMemory<byte>.Empty, privileged, cancellationToken);
+
+    private const string FramedInputWrapper = """
+        set -eu
+        umask 077
+        IFS= read -r script_length
+        case "$script_length" in ''|*[!0-9]*) exit 65;; esac
+        [ "$script_length" -gt 0 ] && [ "$script_length" -le 2097152 ] || exit 65
+        channel_script=$(mktemp /tmp/sshhardener-channel.XXXXXXXXXX)
+        trap 'rm -f "$channel_script"' EXIT
+        trap 'exit 129' HUP
+        trap 'exit 130' INT
+        trap 'exit 143' TERM
+        dd bs=1 count="$script_length" of="$channel_script" 2>/dev/null
+        [ "$(wc -c < "$channel_script")" -eq "$script_length" ] || exit 65
+        # The source contains no credentials. Unlink it before execution so a
+        # server that rejects SSH signal requests cannot leave a named script.
+        # Cancellation is not proof that remote descendants have exited.
+        exec 3<"$channel_script"
+        rm -f "$channel_script"
+        /bin/sh /proc/self/fd/3
+        """;
     private async Task<CommandResult> RunAsync(string command, string input, CancellationToken ct)
     {
         using var cmd = client.CreateCommand(command);
@@ -156,6 +184,6 @@ internal sealed class SshRemoteSession(SshClient client, PrivateKeyFile? key,
     }
     public ValueTask DisposeAsync()
     {
-        client.Dispose(); key?.Dispose(); _commands.Dispose(); return ValueTask.CompletedTask;
+        client.Dispose(); authentication.Dispose(); _commands.Dispose(); return ValueTask.CompletedTask;
     }
 }

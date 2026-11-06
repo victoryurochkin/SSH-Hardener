@@ -13,7 +13,11 @@ using SSHHardener.Ssh;
 
 namespace SSHHardener.App;
 
-public sealed record ConnectionSecrets(string Password, string Passphrase, string SudoPassword);
+public sealed record ConnectionSecrets(string Password, string Passphrase, string SudoPassword)
+{
+    public override string ToString() => "Connection credentials (hidden)";
+}
+public sealed record AccessChoice<T>(T Value, string Label);
 
 public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 {
@@ -46,6 +50,11 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private string _status = "", _auditText = "", _previewText = "", _banText = "", _banIp = "", _summary = "", _keyFingerprint = "";
     private int _progress, _selectedTab;
     private ServerProfile? _selectedProfile;
+    private string _keyAlgorithm = "Ed25519", _restrictedServiceNames = "ssh.service";
+    private AccountAccess _selectedAccess;
+    private SudoPolicyMode _selectedSudoMode;
+    private bool _sftpReadOnly, _restrictedAllowRestart, _enableTotp;
+    private TotpEnrollment? _totpEnrollment;
 
     public MainViewModel(IRemoteSessionFactory sessions, IAuditService auditor, IPlanBuilder planner,
         IHardeningEngine engine, KeyService keys, ProfileStore profiles, ReportExporter reports,
@@ -72,6 +81,9 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         ExportCommand = new AsyncRelayCommand(() => RunAsync(ExportAsync));
         GenerateKeyCommand = new AsyncRelayCommand(() => RunAsync(GenerateKeyAsync));
         ExportPuttyKeyCommand = new AsyncRelayCommand(() => RunAsync(ExportPuttyKeyAsync));
+        ConfigureMfaCommand = new AsyncRelayCommand(() => RunAsync(ConfigureMfaAsync));
+        OpenBulkCommand = new AsyncRelayCommand(() => RunAsync(OpenBulkAsync));
+        OpenSftpCommand = new AsyncRelayCommand(() => RunAsync(OpenSftpAsync));
         ReadPublicKeyCommand = new AsyncRelayCommand(() => RunAsync(ReadPublicKeyAsync));
         SaveProfileCommand = new AsyncRelayCommand(() => RunAsync(SaveProfileAsync));
         LoadProfileCommand = new RelayCommand(LoadProfile);
@@ -85,6 +97,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
                 .FirstOrDefault(key => Status == L[key]);
             var emptyBans = BanText == L["EmptyBans"];
             L.Toggle();
+            OnPropertyChanged(nameof(AccessChoices));
+            OnPropertyChanged(nameof(SudoChoices));
             if (_audit is null) AuditText = L["EmptyAudit"];
             if (_plan is null) PreviewText = L["EmptyPlan"];
             if (emptyBans) BanText = L["EmptyBans"];
@@ -99,10 +113,37 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public Func<string>? ReadNewKeyPassphrase { get; set; }
     public Action? ClearConnectionSecrets { get; set; }
     public Func<string, bool>? ConfirmAction { get; set; }
+    public Func<string>? ReadTargetAccountPassword { get; set; }
+    public Func<string, CancellationToken, Task<string>>? RequestOneTimeCode { get; set; }
+    public Func<CancellationToken, Task<TotpEnrollment?>>? RequestMfaEnrollment { get; set; }
+    public Func<ConnectionOptions, CancellationToken, Task>? OpenSftpAction { get; set; }
+    public Func<HardeningOptions, CancellationToken, Task>? OpenBulkAction { get; set; }
     public ObservableCollection<ServerProfile> Profiles { get; } = [];
     public ObservableCollection<OperationRecord> Operations { get; } = [];
     public ObservableCollection<string> Log { get; } = [];
     public string[] RootPolicies { get; } = ["prohibit-password", "no"];
+    public string[] KeyAlgorithms { get; } = ["Ed25519", "RSA4096"];
+    public string KeyAlgorithm { get => _keyAlgorithm; set { if (KeyAlgorithms.Contains(value)) SetProperty(ref _keyAlgorithm, value); } }
+    public IReadOnlyList<AccessChoice<AccountAccess>> AccessChoices => [new(AccountAccess.Shell, L["AccessShell"]), new(AccountAccess.SftpOnly, L["AccessSftpOnly"])];
+    public IReadOnlyList<AccessChoice<SudoPolicyMode>> SudoChoices =>
+        Enum.GetValues<SudoPolicyMode>().Select(x => new AccessChoice<SudoPolicyMode>(x, L["AccessSudo" + x])).ToArray();
+    public AccountAccess SelectedAccess
+    {
+        get => _selectedAccess;
+        set { if (_selectedAccess == value) return; SetOption(ref _selectedAccess, value); if (value == AccountAccess.SftpOnly) SelectedSudoMode = SudoPolicyMode.None; else SftpReadOnly = false; NotifyAvailability(); }
+    }
+    public SudoPolicyMode SelectedSudoMode { get => _selectedSudoMode; set { if (_selectedSudoMode == value) return; SetOption(ref _selectedSudoMode, value); NotifyAvailability(); } }
+    public bool IsSftpOnly => SelectedAccess == AccountAccess.SftpOnly;
+    public bool CanEditSudo => Idle && !IsSftpOnly;
+    public bool IsRestrictedSudo => SelectedSudoMode == SudoPolicyMode.Restricted;
+    public bool UsesTargetPassword => SelectedSudoMode is SudoPolicyMode.Legacy or SudoPolicyMode.Password;
+    public string RestrictedServiceNames { get => _restrictedServiceNames; set => SetOption(ref _restrictedServiceNames, value); }
+    public bool RestrictedAllowRestart { get => _restrictedAllowRestart; set => SetOption(ref _restrictedAllowRestart, value); }
+    public bool SftpReadOnly { get => _sftpReadOnly; set => SetOption(ref _sftpReadOnly, value); }
+    public bool EnableTotp { get => _enableTotp; set { SetOption(ref _enableTotp, value); if (value) DisablePassword = true; NotifyAvailability(); } }
+    public bool CanConfigureMfa => Idle && EnableTotp;
+    public string MfaStatusText => _totpEnrollment is null ? L["AccessMfaNotEnrolled"] :
+        L["AccessMfaEnrolled"] + " · " + _totpEnrollment.ConfirmedAt.ToLocalTime().ToString("g");
     public bool Busy { get => _busy; private set { SetProperty(ref _busy, value); OnPropertyChanged(nameof(Idle)); NotifyAvailability(); } }
     public bool Idle => !Busy && !_uiFailed;
     private bool SessionAvailable => _session is not null && !_connectionChanged;
@@ -133,7 +174,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public string Username { get => _username; set => SetConnection(ref _username, value); }
     public string PrivateKey { get => _privateKey; set => SetConnection(ref _privateKey, value); }
     public string NewPort { get => _newPort; set => SetOption(ref _newPort, value); }
-    public string NewUsername { get => _newUsername; set => SetOption(ref _newUsername, value); }
+    public string NewUsername { get => _newUsername; set { if (_newUsername != value) _totpEnrollment = null; SetOption(ref _newUsername, value); NotifyAvailability(); } }
     public string NewPrivateKey { get => _newPrivateKey; set => SetOption(ref _newPrivateKey, value); }
     public string PublicKey
     {
@@ -219,6 +260,9 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public IAsyncRelayCommand ExportCommand { get; }
     public IAsyncRelayCommand GenerateKeyCommand { get; }
     public IAsyncRelayCommand ExportPuttyKeyCommand { get; }
+    public IAsyncRelayCommand ConfigureMfaCommand { get; }
+    public IAsyncRelayCommand OpenBulkCommand { get; }
+    public IAsyncRelayCommand OpenSftpCommand { get; }
     public IAsyncRelayCommand ReadPublicKeyCommand { get; }
     public IAsyncRelayCommand SaveProfileCommand { get; }
     public IRelayCommand LoadProfileCommand { get; }
@@ -250,6 +294,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             nameof(CanRollback), nameof(CanExport), nameof(CanManageBans), nameof(CanUnban), nameof(CanLoadProfile), nameof(CanExportPuttyKey),
             nameof(CanUseOperation), nameof(CanCheckOperation), nameof(OperationStatusText) })
             OnPropertyChanged(name);
+        foreach (var name in new[] { nameof(CanEditSudo), nameof(IsSftpOnly), nameof(IsRestrictedSudo), nameof(UsesTargetPassword),
+            nameof(CanConfigureMfa), nameof(MfaStatusText) }) OnPropertyChanged(name);
     }
 
     public void InvalidateConnection()
@@ -331,6 +377,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         InvalidateConnection();
         Status = L["HistoryCredentialsRequired"];
         SelectedTab = 0;
+        if (useNew && operation.TargetAccess == AccountAccess.SftpOnly) OpenSftpCommand.Execute(null);
     }
 
     private async Task CheckOperationAsync(CancellationToken ct)
@@ -364,7 +411,11 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
     private void SetConnection<T>(ref T field, T value, [System.Runtime.CompilerServices.CallerMemberName] string? name = null)
     {
-        if (SetProperty(ref field, value, name)) InvalidateConnection();
+        if (SetProperty(ref field, value, name))
+        {
+            if (name == nameof(Host)) _totpEnrollment = null;
+            InvalidateConnection();
+        }
     }
 
     private void SetOption<T>(ref T field, T value, [System.Runtime.CompilerServices.CallerMemberName] string? name = null)
@@ -426,7 +477,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         if (string.IsNullOrWhiteSpace(Host) || string.IsNullOrWhiteSpace(Username)) throw new ArgumentException(L["Host"] + " / " + L["Username"]);
         var secrets = ReadConnectionSecrets?.Invoke() ?? new ConnectionSecrets("", "", "");
         var options = new ConnectionOptions(Host.Trim(), ParsePort(Port), Username.Trim(),
-            string.IsNullOrEmpty(PrivateKey) ? secrets.Password : null, NullIfEmpty(PrivateKey), NullIfEmpty(secrets.Passphrase), NullIfEmpty(secrets.SudoPassword));
+            string.IsNullOrEmpty(PrivateKey) ? secrets.Password : null, NullIfEmpty(PrivateKey), NullIfEmpty(secrets.Passphrase), NullIfEmpty(secrets.SudoPassword))
+            { OneTimeCodeProvider = CreateInteractiveCodeProvider(Username.Trim() + "@" + Host.Trim()) };
         var pinnedOperation = SelectedOperation is { } candidate && OperationMatchesEndpoint(candidate, options) ? candidate : null;
         ClearOperationCheck();
         if (_session is not null) { await _session.DisposeAsync(); _session = null; }
@@ -493,11 +545,9 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         SelectedTab = 1;
     }
 
-    private async Task BuildPlanAsync(CancellationToken ct)
+    private async Task<HardeningOptions> ReadHardeningOptionsAsync(CancellationToken ct, bool forBulk = false)
     {
         ct.ThrowIfCancellationRequested();
-        var session = RequireSession();
-        if (_audit is null) throw new InvalidOperationException(L["EmptyAudit"]);
         if (!int.TryParse(MaxRetry, out var retries) || !int.TryParse(MaxAuthTries, out var maxAuthTries) ||
             !int.TryParse(FindTimeMinutes, out var findMinutes) || findMinutes is < 1 or > 1440 ||
             !int.TryParse(BanSeconds, out var ban) || !int.TryParse(RollbackMinutes, out var rollback)) throw new ArgumentException(L["NumberInvalid"]);
@@ -505,28 +555,100 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         {
             NewPort = ParsePort(NewPort), Username = NewUsername.Trim(), PublicKey = PublicKey.Trim(),
             PrivateKeyPath = NewPrivateKey, KeyPassphrase = NullIfEmpty(ReadNewKeyPassphrase?.Invoke()),
-            CreateUser = CreateUser, GrantSudo = GrantSudo, NoPasswordSudo = NoPasswordSudo,
+            CreateUser = CreateUser, GrantSudo = SelectedSudoMode == SudoPolicyMode.Legacy && GrantSudo,
+            NoPasswordSudo = SelectedSudoMode == SudoPolicyMode.Legacy && NoPasswordSudo,
             DisablePasswordAuthentication = DisablePassword, PermitRootLogin = RootPolicy,
             CloseOldPort = CloseOldPort, DisableForwarding = DisableForwarding,
             ConfigureFail2Ban = Fail2Ban, MaxRetry = retries, MaxAuthTries = maxAuthTries, FindTimeSeconds = findMinutes * 60, BanSeconds = ban,
             IgnoreAddresses = Whitelist.Split([',', ';', '\n', '\r'], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries),
-            RollbackMinutes = rollback
+            RollbackMinutes = rollback,
+            AccountAccess = SelectedAccess, SudoMode = SelectedSudoMode, SftpReadOnly = IsSftpOnly && SftpReadOnly,
+            RestrictedSudoCommands = ReadRestrictedCommands(),
+            NewUserSudoPassword = !forBulk && SelectedSudoMode == SudoPolicyMode.Password ? NullIfEmpty(ReadTargetAccountPassword?.Invoke()) : null,
+            VerificationSudoPassword = !forBulk && SelectedSudoMode == SudoPolicyMode.Legacy ? NullIfEmpty(ReadTargetAccountPassword?.Invoke()) : null,
+            EnableTotp = EnableTotp,
+            TotpSecret = !forBulk && EnableTotp ? _totpEnrollment?.Secret : null,
+            TotpEnrollmentCode = !forBulk && EnableTotp ? _totpEnrollment?.Code : null,
+            TotpEnrollmentConfirmedAt = !forBulk && EnableTotp ? _totpEnrollment?.ConfirmedAt : null,
+            TotpRecoveryCodes = !forBulk && EnableTotp ? _totpEnrollment?.RecoveryCodes.ToArray() ?? [] : [],
+            VerificationOneTimeCodeProvider = forBulk ? null : CreateInteractiveCodeProvider(NewUsername.Trim() + "@" + Host.Trim())
         };
         if (!File.Exists(options.PrivateKeyPath)) throw new ArgumentException(L["NewPrivateKey"]);
         var derived = await Task.Run(() => _keys.ReadPublicKey(options.PrivateKeyPath, options.KeyPassphrase), ct);
         if (string.IsNullOrWhiteSpace(options.PublicKey)) { PublicKey = derived; options = options with { PublicKey = derived }; }
         if (!KeyIdentity(options.PublicKey).Equals(KeyIdentity(derived), StringComparison.Ordinal)) throw new ArgumentException(L.English ? "Public and private keys do not match." : "Публичный и приватный ключи не совпадают.");
+        if (!forBulk) InputValidators.Validate(options);
+        return options;
+    }
+
+    private async Task BuildPlanAsync(CancellationToken ct)
+    {
+        var session = RequireSession();
+        if (_audit is null) throw new InvalidOperationException(L["EmptyAudit"]);
+        var options = await ReadHardeningOptionsAsync(ct);
         _plan = _planner.Build(_audit, session.Options, options);
         PreviewText = string.Join("\n", _plan.Warnings.Select(x => "# WARNING: " + x)) + "\n\n" + _plan.Preview;
         Status = L["PlanReady"];
         SelectedTab = 3;
     }
 
+    private RestrictedSudoCommand[] ReadRestrictedCommands()
+    {
+        if (SelectedSudoMode != SudoPolicyMode.Restricted) return [];
+        var units = RestrictedServiceNames.Split([',', ';', '\r', '\n', ' ', '\t'], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .Distinct(StringComparer.Ordinal).ToArray();
+        if (units.Length is < 1 or > 8) throw new ArgumentException(L["AccessRestrictedServices"]);
+        var commands = new List<RestrictedSudoCommand>();
+        foreach (var unit in units)
+        {
+            commands.Add(new("/usr/bin/systemctl", "is-active " + unit));
+            commands.Add(new("/usr/bin/systemctl", "is-enabled " + unit));
+            commands.Add(new("/usr/bin/systemctl", "--no-pager --full status " + unit));
+            if (RestrictedAllowRestart) commands.Add(new("/usr/bin/systemctl", "restart " + unit));
+        }
+        foreach (var command in commands) AccessPolicyValidation.ValidateRestrictedCommand(command);
+        return commands.ToArray();
+    }
+
+    private Func<CancellationToken, Task<string>>? CreateInteractiveCodeProvider(string label) =>
+        RequestOneTimeCode is null ? null : ct => RequestOneTimeCode(label, ct);
+
+    private async Task ConfigureMfaAsync(CancellationToken ct)
+    {
+        if (!EnableTotp || RequestMfaEnrollment is null) return;
+        var enrollment = await RequestMfaEnrollment(ct);
+        if (enrollment is null) return;
+        _totpEnrollment = enrollment;
+        InvalidatePlan();
+        NotifyAvailability();
+    }
+
+    private async Task OpenSftpAsync(CancellationToken ct)
+    {
+        if (OpenSftpAction is null) return;
+        var port = int.TryParse(Port, out var value) && value is >= 1 and <= 65535 ? value : 22;
+        await OpenSftpAction(new ConnectionOptions(Host.Trim(), port, Username.Trim(), PrivateKeyPath: NullIfEmpty(PrivateKey))
+            { OneTimeCodeProvider = CreateInteractiveCodeProvider(Username.Trim() + "@" + Host.Trim()) }, ct);
+    }
+
+    public BulkHardeningCoordinator CreateBulkCoordinator() => new(_sessions, _auditor, _planner, _engine,
+        async (operation, ct) => { await _history.UpsertAsync(operation, ct).ConfigureAwait(false); });
+
+    public BulkViewModel CreateBulkViewModel(HardeningOptions template) => new(CreateBulkCoordinator(), _profiles, template, L);
+
+    private async Task OpenBulkAsync(CancellationToken ct)
+    {
+        if (OpenBulkAction is null) return;
+        var template = await ReadHardeningOptionsAsync(ct, forBulk: true);
+        await OpenBulkAction(template, ct);
+        ReplaceOperations(await _history.LoadAsync(ct));
+    }
+
     private async Task ApplyAsync(CancellationToken ct)
     {
         var session = RequireSession();
         var plan = _plan ?? throw new InvalidOperationException(L["StalePlan"]);
-        if ((plan.Options.NoPasswordSudo || plan.Options.BanSeconds == -1) &&
+        if ((plan.Options.NoPasswordSudo || plan.Options.SudoMode is SudoPolicyMode.Passwordless or SudoPolicyMode.Restricted || plan.Options.BanSeconds == -1) &&
             !Confirm(L["ConfirmRisk"] + "\n\n" + plan.Audit.AdminAddress)) return;
         if (!Confirm(L["ConfirmApply"])) return;
         var operation = OperationRecord.FromPlan(plan, session.Identity);
@@ -628,7 +750,9 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         if (dialog.ShowDialog() != true) return;
         if (File.Exists(dialog.FileName) || File.Exists(dialog.FileName + ".pub")) throw new IOException(L["KeyExists"]);
         var format = dialog.FilterIndex == 1 ? PrivateKeyFormat.EncryptedPuttyV3 : PrivateKeyFormat.EncryptedPkcs8Pem;
-        PublicKey = await _keys.GenerateRsaAsync(dialog.FileName, ReadNewKeyPassphrase?.Invoke() ?? "", ct, format);
+        PublicKey = KeyAlgorithm == "Ed25519"
+            ? await _keys.GenerateEd25519Async(dialog.FileName, ReadNewKeyPassphrase?.Invoke() ?? "", ct, format)
+            : await _keys.GenerateRsaAsync(dialog.FileName, ReadNewKeyPassphrase?.Invoke() ?? "", ct, format);
         NewPrivateKey = dialog.FileName;
         AddLog(L["KeyGenerated"]);
         MessageBox.Show($"{L["KeyGenerated"]}\n\n{dialog.FileName}\n{dialog.FileName}.pub", "SSH Hardener", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -646,7 +770,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         };
         if (dialog.ShowDialog() != true) return;
         var passphrase = ReadNewKeyPassphrase?.Invoke() ?? "";
-        var publicKey = await _keys.ExportRsaToPuttyAsync(source, dialog.FileName, passphrase, passphrase, ct);
+        var publicKey = await _keys.ExportToPuttyAsync(source, dialog.FileName, passphrase, passphrase, ct);
         AddLog(L["PuttyKeyExported"]);
         MessageBox.Show($"{L["PuttyKeyExported"]}\n\n{dialog.FileName}\n\n{KeyService.Fingerprint(publicKey)}", "SSH Hardener", MessageBoxButton.OK, MessageBoxImage.Information);
     }

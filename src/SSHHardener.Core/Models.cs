@@ -1,8 +1,15 @@
+using System.Text.Json.Serialization;
+
 namespace SSHHardener.Core;
 
 public sealed record ConnectionOptions(string Host, int Port, string Username,
-    string? Password = null, string? PrivateKeyPath = null, string? Passphrase = null,
-    string? SudoPassword = null);
+    [property: JsonIgnore] string? Password = null, string? PrivateKeyPath = null,
+    [property: JsonIgnore] string? Passphrase = null, [property: JsonIgnore] string? SudoPassword = null)
+{
+    [JsonIgnore]
+    public Func<CancellationToken, Task<string>>? OneTimeCodeProvider { get; init; }
+    public override string ToString() => $"{Username}@{Host}:{Port}";
+}
 public sealed record HostIdentity(string Host, int Port, string Algorithm, string Fingerprint, string KeyBase64, bool IsKnown = false);
 public sealed record CommandResult(int ExitCode, string Output, string Error)
 {
@@ -45,11 +52,11 @@ public sealed record HardeningOptions
     public string Username { get; init; } = "sshadmin";
     public string PublicKey { get; init; } = "";
     public string PrivateKeyPath { get; init; } = "";
-    public string? KeyPassphrase { get; init; }
+    [JsonIgnore] public string? KeyPassphrase { get; init; }
     public bool CreateUser { get; init; } = true;
     public bool GrantSudo { get; init; }
     public bool NoPasswordSudo { get; init; }
-    public string? NewUserSudoPassword { get; init; }
+    [JsonIgnore] public string? NewUserSudoPassword { get; init; }
     public bool DisablePasswordAuthentication { get; init; } = true;
     public string PermitRootLogin { get; init; } = "prohibit-password";
     public bool CloseOldPort { get; init; }
@@ -61,13 +68,29 @@ public sealed record HardeningOptions
     public int BanSeconds { get; init; } = 3600;
     public string[] IgnoreAddresses { get; init; } = [];
     public int RollbackMinutes { get; init; } = 10;
+    public AccountAccess AccountAccess { get; init; } = AccountAccess.Shell;
+    public SudoPolicyMode SudoMode { get; init; } = SudoPolicyMode.Legacy;
+    public RestrictedSudoCommand[] RestrictedSudoCommands { get; init; } = [];
+    public bool SftpReadOnly { get; init; }
+    public bool EnableTotp { get; init; }
+    [JsonIgnore] public string? TotpSecret { get; init; }
+    [JsonIgnore] public string? TotpEnrollmentCode { get; init; }
+    public DateTimeOffset? TotpEnrollmentConfirmedAt { get; init; }
+    [JsonIgnore] public string[] TotpRecoveryCodes { get; init; } = [];
+    [JsonIgnore] public Func<CancellationToken, Task<string>>? VerificationOneTimeCodeProvider { get; init; }
+    [JsonIgnore] public string? VerificationSudoPassword { get; init; }
+    public override string ToString() => $"Account policy: {AccountAccess}, sudo={SudoMode}, TOTP={EnableTotp}";
 }
-public sealed record PlannedStep(string Id, string Description, string Script, string RollbackScript);
+public sealed record PlannedStep(string Id, string Description, string Script, string RollbackScript)
+{
+    public SensitiveInputKind SensitiveInput { get; init; }
+}
 public sealed record HardeningPlan(string TransactionId, ServerAudit Audit,
     ConnectionOptions OriginalConnection, HardeningOptions Options, IReadOnlyList<PlannedStep> Steps,
     IReadOnlyList<string> Warnings)
 {
     public string Preview => string.Join("\n\n", Steps.Select(x => $"# {x.Id}: {x.Description}\n{x.Script}\n# ROLLBACK\n{x.RollbackScript}"));
+    public override string ToString() => "SSH hardening plan " + TransactionId;
 }
 public sealed record OperationProgress(string Step, string Message, int Percent);
 public sealed record HardeningResult(string TransactionId, bool Committed, bool RolledBack,

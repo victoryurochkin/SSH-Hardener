@@ -30,6 +30,9 @@ jobs:
       - name: Verify live WPF log updates without connecting
         timeout-minutes: 2
         run: dotnet run --project tests/SSHHardener.UiTests/SSHHardener.UiTests.csproj -c Release --no-build --no-restore -- artifacts/ui-regression.txt
+      - name: Verify bulk WPF workflow without connecting
+        timeout-minutes: 2
+        run: dotnet run --project tests/SSHHardener.UiTests/SSHHardener.UiTests.csproj -c Release --no-build --no-restore -- artifacts/bulk-ui-regression.txt --bulk-ui
       - name: Publish unsigned portable build
         run: dotnet publish src/SSHHardener.App/SSHHardener.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishTrimmed=false -p:RestoreLockedMode=true -o artifacts/publish
       - name: Verify WPF startup without showing a window or connecting
@@ -72,4 +75,5 @@ jobs:
           path: |
             artifacts/startup-check.txt
             artifacts/ui-regression.txt
+            artifacts/bulk-ui-regression.txt
           if-no-files-found: ignore

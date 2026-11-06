@@ -13,6 +13,7 @@ public static partial class InputValidators
     public static void Validate(HardeningOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
+        AccessPolicyValidation.Validate(options);
         if (options.NewPort is < 1 or > 65535) throw new ArgumentException("SSH port must be 1–65535.");
         if (!UsernamePattern().IsMatch(options.Username)) throw new ArgumentException("Invalid Linux username.");
         if (options.CreateUser && new[] { "root", "daemon", "bin", "sys", "sync", "nobody", "sshd", "admin" }.Contains(options.Username))
@@ -20,10 +21,10 @@ public static partial class InputValidators
         if (options.PermitRootLogin is not ("no" or "prohibit-password" or "yes")) throw new ArgumentException("Invalid root login policy.");
         if (options.Username == "root" && options.PermitRootLogin == "no") throw new ArgumentException("The recovery identity cannot be root when root login is disabled.");
         if (string.IsNullOrWhiteSpace(options.PrivateKeyPath)) throw new ArgumentException("A corresponding private key is required to verify the new login.");
-        if (options.GrantSudo && !options.NoPasswordSudo)
+        if (options.SudoMode == SudoPolicyMode.Legacy && options.GrantSudo && !options.NoPasswordSudo)
             throw new ArgumentException("This release supports verified NOPASSWD sudo only. Password-based sudo provisioning is not supported.");
         if (options.NoPasswordSudo && !options.GrantSudo) throw new ArgumentException("NOPASSWD requires GrantSudo.");
-        if (!string.IsNullOrEmpty(options.NewUserSudoPassword)) throw new ArgumentException("New user passwords are not supported by this release.");
+        if (options.SudoMode == SudoPolicyMode.Legacy && !string.IsNullOrEmpty(options.NewUserSudoPassword)) throw new ArgumentException("Select password-based sudo to provision an account password.");
         if (options.RollbackMinutes is < 5 or > 60) throw new ArgumentException("Rollback deadline must be 5–60 minutes.");
         if (options.MaxRetry is < 1 or > 100) throw new ArgumentException("MaxRetry must be 1–100.");
         if (options.MaxAuthTries is < 1 or > 20) throw new ArgumentException("MaxAuthTries must be 1–20 attempts per SSH connection.");
