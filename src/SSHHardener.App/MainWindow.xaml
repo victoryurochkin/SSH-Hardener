@@ -83,13 +83,23 @@
             </StackPanel></Border>
             <Border Style="{StaticResource Card}"><StackPanel>
               <CheckBox Content="{Binding L[DisablePassword]}" IsChecked="{Binding DisablePassword}" />
-              <TextBlock Text="{Binding L[RootPolicy]}" Margin="0,12,0,0" /><ComboBox ItemsSource="{Binding RootPolicies}" SelectedItem="{Binding RootPolicy}" DropDownOpened="ComboBoxDropDownOpened" />
+              <Grid Margin="0,12,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <TextBlock Text="{Binding L[RootPolicy]}" Margin="0,0,18,0" VerticalAlignment="Bottom" />
+                <TextBlock Grid.Column="1" Text="{Binding L[MaxAuthTries]}" VerticalAlignment="Bottom" />
+                <ComboBox Grid.Row="1" ItemsSource="{Binding RootPolicies}" SelectedItem="{Binding RootPolicy}" DropDownOpened="ComboBoxDropDownOpened" Margin="0,5,18,14" />
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding MaxAuthTries, UpdateSourceTrigger=PropertyChanged}" Width="120" HorizontalAlignment="Left" />
+              </Grid>
               <CheckBox Content="{Binding L[CloseOldPort]}" IsChecked="{Binding CloseOldPort}" />
               <CheckBox Content="{Binding L[DisableForwarding]}" IsChecked="{Binding DisableForwarding}" />
               <CheckBox Content="{Binding L[Fail2Ban]}" IsChecked="{Binding Fail2Ban}" />
-              <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                <StackPanel Margin="0,12,18,0"><TextBlock Text="{Binding L[MaxRetry]}" /><TextBox Text="{Binding MaxRetry, UpdateSourceTrigger=PropertyChanged}" /></StackPanel>
-                <StackPanel Grid.Column="1" Margin="0,12,0,0"><TextBlock Text="{Binding L[BanSeconds]}" /><TextBox Text="{Binding BanSeconds, UpdateSourceTrigger=PropertyChanged}" /></StackPanel>
+              <TextBlock Text="{Binding L[Fail2BanHint]}" Style="{StaticResource Hint}" />
+              <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <TextBlock Text="{Binding L[MaxRetry]}" Margin="0,0,18,0" VerticalAlignment="Bottom" />
+                <TextBlock Grid.Column="1" Text="{Binding L[FindTimeMinutes]}" VerticalAlignment="Bottom" />
+                <TextBox Grid.Row="1" Text="{Binding MaxRetry, UpdateSourceTrigger=PropertyChanged}" Width="120" HorizontalAlignment="Left" />
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding FindTimeMinutes, UpdateSourceTrigger=PropertyChanged}" Width="120" HorizontalAlignment="Left" />
+                <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Text="{Binding L[BanSeconds]}" />
+                <TextBox Grid.Row="3" Text="{Binding BanSeconds, UpdateSourceTrigger=PropertyChanged}" Width="120" HorizontalAlignment="Left" />
               </Grid>
               <TextBlock Text="{Binding L[Whitelist]}" /><TextBox Text="{Binding Whitelist, UpdateSourceTrigger=PropertyChanged}" />
               <TextBlock Text="{Binding L[RollbackMinutes]}" /><TextBox Text="{Binding RollbackMinutes, UpdateSourceTrigger=PropertyChanged}" Width="120" HorizontalAlignment="Left" />

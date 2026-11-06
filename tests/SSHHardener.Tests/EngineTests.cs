@@ -67,6 +67,36 @@ public sealed class EngineTests : IDisposable
     }
 
     [Fact]
+    public async Task Fail2BanPackagesAreConfiguredOnlyAfterRecoveryIsArmed()
+    {
+        var plan = PlanWithFail2Ban();
+        var result = await new HardeningEngine(Factory()).ApplyAsync(Original(), plan, null, CancellationToken.None);
+        Assert.True(result.Committed);
+        Assert.True(_events.IndexOf("original:arm-rollback") < _events.IndexOf("original:configure-fail2ban"));
+        Assert.True(_events.IndexOf("original:configure-fail2ban") < _events.IndexOf("original:provision"));
+    }
+
+    [Fact]
+    public async Task Fail2BanFailureRecoversBeforeSshOrAccountsAreChanged()
+    {
+        var result = await new HardeningEngine(Factory()).ApplyAsync(Original(failFail2Ban: true), PlanWithFail2Ban(), null, CancellationToken.None);
+        Assert.False(result.Committed);
+        Assert.True(result.RolledBack);
+        Assert.Contains(_events, value => value.Contains("rollback.sh", StringComparison.Ordinal));
+        Assert.DoesNotContain("original:provision", _events);
+        Assert.DoesNotContain("original:configure-dual-port", _events);
+    }
+
+    [Fact]
+    public async Task RequestedFail2BanCannotBeSilentlySkippedByAnIncompletePlan()
+    {
+        var plan = Plan();
+        plan = plan with { Options = plan.Options with { ConfigureFail2Ban = true } };
+        await Assert.ThrowsAsync<InvalidOperationException>(() => new HardeningEngine(Factory()).ApplyAsync(Original(), plan, null, CancellationToken.None));
+        Assert.Empty(_events);
+    }
+
+    [Fact]
     public async Task CancellationAfterArmingUsesIndependentRecoveryToken()
     {
         using var stop = new CancellationTokenSource();
@@ -151,7 +181,17 @@ public sealed class EngineTests : IDisposable
             ids.Select(id => new PlannedStep(id, id, id, "rollback")).ToArray(), []);
     }
 
-    private FakeSession Original(bool failPreflight = false, bool failRecovery = false, Action? afterArm = null) => new(OriginalOptions, Pin, (script, privileged, ct) =>
+    private HardeningPlan PlanWithFail2Ban()
+    {
+        var plan = Plan();
+        return plan with
+        {
+            Options = plan.Options with { ConfigureFail2Ban = true },
+            Steps = plan.Steps.Take(2).Append(new PlannedStep("configure-fail2ban", "configure-fail2ban", "configure-fail2ban", "rollback")).Concat(plan.Steps.Skip(2)).ToArray()
+        };
+    }
+
+    private FakeSession Original(bool failPreflight = false, bool failRecovery = false, Action? afterArm = null, bool failFail2Ban = false) => new(OriginalOptions, Pin, (script, privileged, ct) =>
     {
         ct.ThrowIfCancellationRequested();
         _events.Add("original:" + script);
@@ -162,6 +202,7 @@ public sealed class EngineTests : IDisposable
         }
         if (script.StartsWith("cat ", StringComparison.Ordinal)) return new(0, _state, "");
         if (script == "preflight" && failPreflight) return new(1, "", "Rejected preflight.");
+        if (script == "configure-fail2ban" && failFail2Ban) return new(1, "", "Package installation failed.");
         if (script == "arm-rollback") afterArm?.Invoke();
         return new(0, "", "");
     });

@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json;
 using SSHHardener.Core;
 using SSHHardener.Reports;
@@ -31,7 +32,12 @@ public sealed class KeyAndReportTests : IDisposable
     {
         var audit = new ServerAudit { RawReport = "<script>alert('server')</script>", OsId = "debian", OsVersion = "12" };
         var connection = new ConnectionOptions("server.example", 22, "root", Password: "distinct-password-secret", Passphrase: "distinct-passphrase-secret", SudoPassword: "distinct-sudo-secret");
-        var options = InputValidatorsTests.ValidOptions with { KeyPassphrase = "distinct-new-key-secret" };
+        var options = InputValidatorsTests.ValidOptions with
+        {
+            KeyPassphrase = "distinct-new-key-secret",
+            NewUserSudoPassword = "distinct-new-sudo-secret",
+            PrivateKeyPath = "distinct-private-key-path.pem"
+        };
         var plan = new HardeningPlan("test-transaction", audit, connection, options, [], []);
         var path = Path.Combine(_folder, "report.html");
         await new ReportExporter().ExportAsync(path, audit, plan, null, CancellationToken.None);
@@ -42,6 +48,8 @@ public sealed class KeyAndReportTests : IDisposable
         Assert.DoesNotContain("distinct-passphrase-secret", html);
         Assert.DoesNotContain("distinct-sudo-secret", html);
         Assert.DoesNotContain("distinct-new-key-secret", html);
+        Assert.DoesNotContain("distinct-new-sudo-secret", html);
+        Assert.DoesNotContain("distinct-private-key-path.pem", html);
     }
 
     [Fact]
@@ -56,6 +64,109 @@ public sealed class KeyAndReportTests : IDisposable
         Assert.Equal("test-transaction", parsed.RootElement.GetProperty("Transaction").GetString());
         Assert.DoesNotContain("do-not-export-password", json);
         Assert.False(parsed.RootElement.TryGetProperty("OriginalConnection", out _));
+    }
+
+    [Theory]
+    [InlineData(".md")]
+    [InlineData(".html")]
+    public async Task PlanAuditIsClearlyLabeledBeforeChangesAndTransactionIdCopiesExactly(string extension)
+    {
+        const string transactionId = "20261106104500-0123456789ab";
+        var audit = new ServerAudit { RawReport = "PasswordAuthentication yes" };
+        var options = InputValidatorsTests.ValidOptions with { ConfigureFail2Ban = true, MaxAuthTries = 4 };
+        var plan = new HardeningPlan(transactionId, audit, new ConnectionOptions("server.example", 22, "root"), options, [], []);
+        var result = new HardeningResult(transactionId, true, false, "Transaction committed", DateTimeOffset.UtcNow);
+        var path = Path.Combine(_folder, "before-changes" + extension);
+
+        await new ReportExporter().ExportAsync(path, audit, plan, result, CancellationToken.None);
+
+        var content = WebUtility.HtmlDecode(await File.ReadAllTextAsync(path, CancellationToken.None)).Replace("\r\n", "\n");
+        Assert.Contains("AuditSnapshotKind: pre-change", content);
+        Assert.Contains("## Audit — before changes", content);
+        Assert.Contains("captured before the changes in this plan", content);
+        Assert.Contains("Export does not run a new audit", content);
+        Assert.Contains("not post-change verification", content);
+        Assert.Contains("\n" + transactionId + "\n", content);
+        Assert.DoesNotContain(transactionId.Replace("-", "\\-"), content);
+        Assert.Contains("## Requested policy", content);
+        Assert.Contains("\"MaxAuthTries\": 4", content);
+        Assert.Contains("not measurements of the server after applying changes", content);
+    }
+
+    [Theory]
+    [InlineData(".md")]
+    [InlineData(".html")]
+    [InlineData(".json")]
+    public async Task ValueEqualAuditFromAnotherObjectIsIndependentRatherThanPostChangeVerification(string extension)
+    {
+        var planAudit = new ServerAudit { RawReport = "Independent timing cannot be inferred" };
+        var suppliedAudit = planAudit with { };
+        Assert.Equal(planAudit, suppliedAudit);
+        Assert.NotSame(planAudit, suppliedAudit);
+        var plan = new HardeningPlan("independent-transaction", planAudit, new ConnectionOptions("server.example", 22, "root"), InputValidatorsTests.ValidOptions, [], []);
+        var path = Path.Combine(_folder, "independent" + extension);
+
+        await new ReportExporter().ExportAsync(path, suppliedAudit, plan, null, CancellationToken.None);
+
+        var content = WebUtility.HtmlDecode(await File.ReadAllTextAsync(path, CancellationToken.None));
+        if (extension == ".json")
+        {
+            using var parsed = JsonDocument.Parse(content);
+            Assert.Equal("independent-audit", parsed.RootElement.GetProperty("AuditSnapshotKind").GetString());
+            Assert.Contains("timing relative to changes is not verified", parsed.RootElement.GetProperty("AuditSnapshotNote").GetString());
+        }
+        else
+        {
+            Assert.Contains("AuditSnapshotKind: independent-audit", content);
+            Assert.Contains("## Audit — independent snapshot", content);
+            Assert.Contains("timing relative to changes is not verified", content);
+        }
+    }
+
+    [Fact]
+    public async Task JsonRequestedPolicyContainsCustomValuesAndNoCredentialBearingOptions()
+    {
+        var audit = new ServerAudit { RawReport = "pre-change audit" };
+        var connection = new ConnectionOptions("server.example", 22, "root", Password: "password-secret",
+            PrivateKeyPath: "connection-private-path.pem", Passphrase: "connection-key-secret", SudoPassword: "sudo-secret");
+        var options = InputValidatorsTests.ValidOptions with
+        {
+            MaxAuthTries = 4, ConfigureFail2Ban = true, MaxRetry = 5, FindTimeSeconds = 900, BanSeconds = 7200,
+            DisablePasswordAuthentication = false, CloseOldPort = true,
+            KeyPassphrase = "new-key-secret", NewUserSudoPassword = "new-sudo-secret", PrivateKeyPath = "new-private-path.pem"
+        };
+        var plan = new HardeningPlan("policy-transaction", audit, connection, options, [], []);
+        var path = Path.Combine(_folder, "requested-policy.json");
+
+        await new ReportExporter().ExportAsync(path, audit, plan, null, CancellationToken.None);
+
+        var content = await File.ReadAllTextAsync(path, CancellationToken.None);
+        using var parsed = JsonDocument.Parse(content);
+        Assert.Equal("pre-change", parsed.RootElement.GetProperty("AuditSnapshotKind").GetString());
+        var policy = parsed.RootElement.GetProperty("RequestedPolicy");
+        Assert.Equal(7, policy.EnumerateObject().Count());
+        Assert.Equal(4, policy.GetProperty("MaxAuthTries").GetInt32());
+        Assert.True(policy.GetProperty("Fail2banEnabled").GetBoolean());
+        Assert.Equal(5, policy.GetProperty("MaxRetry").GetInt32());
+        Assert.Equal(900, policy.GetProperty("FindTimeSeconds").GetInt32());
+        Assert.Equal(7200, policy.GetProperty("BanSeconds").GetInt32());
+        Assert.False(policy.GetProperty("DisablePasswordAuthentication").GetBoolean());
+        Assert.True(policy.GetProperty("CloseOldPort").GetBoolean());
+        foreach (var secret in new[] { "password-secret", "connection-private-path.pem", "connection-key-secret", "sudo-secret", "new-key-secret", "new-sudo-secret", "new-private-path.pem" })
+            Assert.DoesNotContain(secret, content);
+        Assert.False(parsed.RootElement.TryGetProperty("OriginalConnection", out _));
+        Assert.False(parsed.RootElement.TryGetProperty("Options", out _));
+    }
+
+    [Fact]
+    public async Task AuditOnlyJsonHasNoInventedRequestedPolicy()
+    {
+        var path = Path.Combine(_folder, "audit-only.json");
+        await new ReportExporter().ExportAsync(path, new ServerAudit(), null, null, CancellationToken.None);
+        using var parsed = JsonDocument.Parse(await File.ReadAllTextAsync(path, CancellationToken.None));
+        Assert.Equal("independent-audit", parsed.RootElement.GetProperty("AuditSnapshotKind").GetString());
+        Assert.Equal(JsonValueKind.Null, parsed.RootElement.GetProperty("RequestedPolicy").ValueKind);
+        Assert.Equal(JsonValueKind.Null, parsed.RootElement.GetProperty("Transaction").ValueKind);
     }
 
     public void Dispose()

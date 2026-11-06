@@ -48,8 +48,11 @@
 <data name="RootPolicy" xml:space="preserve"><value>Вход root</value></data>
 <data name="CloseOldPort" xml:space="preserve"><value>Удалить старый слушающий порт после проверки</value></data>
 <data name="DisableForwarding" xml:space="preserve"><value>Отключить туннели, agent forwarding и X11</value></data>
-<data name="Fail2Ban" xml:space="preserve"><value>Настроить установленный fail2ban</value></data>
-<data name="MaxRetry" xml:space="preserve"><value>Число событий до блокировки</value></data>
+<data name="Fail2Ban" xml:space="preserve"><value>Установить и настроить Fail2ban</value></data>
+<data name="MaxRetry" xml:space="preserve"><value>Ошибок входа до блокировки IP</value></data>
+<data name="MaxAuthTries" xml:space="preserve"><value>Попыток в одном SSH-соединении</value></data>
+<data name="FindTimeMinutes" xml:space="preserve"><value>Период учёта ошибок, минут</value></data>
+<data name="Fail2BanHint" xml:space="preserve"><value>Лимит SSH действует в одном соединении. Fail2ban считает ошибки одного IP за указанный период, включая разные соединения. По умолчанию: 3 ошибки за 10 минут, блокировка на 1 час. Видимый серверу IP администратора добавляется в белый список. На Debian/Ubuntu Fail2ban при необходимости устанавливается из настроенных репозиториев ОС; на RPM-системах он должен быть установлен заранее.</value></data>
 <data name="BanSeconds" xml:space="preserve"><value>Длительность бана, секунд (-1 = бессрочно)</value></data>
 <data name="Whitelist" xml:space="preserve"><value>Дополнительные IP / CIDR через запятую</value></data>
 <data name="RollbackMinutes" xml:space="preserve"><value>Автооткат через, минут</value></data>
@@ -111,4 +114,5 @@
 <data name="EmptyProfiles" xml:space="preserve"><value>Сохраните параметры подключения, чтобы быстро подключаться к этому серверу в следующий раз. Пароли в профиль не записываются.</value></data>
 <data name="EmptyBans" xml:space="preserve"><value>Подключитесь к серверу и нажмите «Обновить список», чтобы получить блокировки jail sshd.</value></data>
 <data name="EmptyLog" xml:space="preserve"><value>Здесь появятся этапы выполнения и результат проверки. Пока изменения не применялись.</value></data>
+<data name="RollbackComplete" xml:space="preserve"><value>Сервер подтвердил ручной откат изменений.</value></data>
 </root>

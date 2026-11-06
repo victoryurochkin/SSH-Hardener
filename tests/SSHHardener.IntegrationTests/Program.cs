@@ -4,6 +4,11 @@ using SSHHardener.Profiles;
 
 // This is an explicit integration runner, not a test which silently passes without Docker.
 var folder = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../artifacts/integration"));
+if (args.Length > 1 && args[0] == "--export-fail2ban")
+{
+    Fail2BanScenario.Export(args[1]);
+    return 0;
+}
 if (args.Length > 1 && args[0] == "--prepare")
 {
     folder = Path.GetFullPath(args[1]);

@@ -16,11 +16,16 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
       - name: Restore locked dependencies
         run: dotnet restore --locked-mode
       - name: Build
         run: dotnet build -c Release --no-restore
       - name: Unit tests
+        env:
+          SSH_HARDENER_TEST_PYTHON: python
         run: dotnet test tests/SSHHardener.Tests/SSHHardener.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=unit.trx"
       - name: Verify live WPF log updates without connecting
         timeout-minutes: 2

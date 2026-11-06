@@ -27,6 +27,8 @@ public sealed partial class HardeningEngine(IRemoteSessionFactory sessionFactory
         var steps = plan.Steps.ToDictionary(x => x.Id, StringComparer.Ordinal);
         foreach (var required in new[] { "preflight", "arm-rollback", "provision", "open-port", "configure-dual-port", "configure-final", "commit" })
             if (!steps.ContainsKey(required)) throw new InvalidOperationException("The plan is incomplete.");
+        if (plan.Options.ConfigureFail2Ban && !steps.ContainsKey("configure-fail2ban"))
+            throw new InvalidOperationException("The Fail2ban installation and configuration step is missing from the plan.");
         var pin = original.Identity;
         var armAttempted = false;
         async Task Execute(IRemoteSession session, string id, int percent)
@@ -43,6 +45,7 @@ public sealed partial class HardeningEngine(IRemoteSessionFactory sessionFactory
         {
             await Execute(original, "preflight", 5);
             await Execute(original, "arm-rollback", 15);
+            if (plan.Options.ConfigureFail2Ban) await Execute(original, "configure-fail2ban", 20);
             await Execute(original, "provision", 30);
             await Execute(original, "open-port", 45);
             await Execute(original, "configure-dual-port", 55);

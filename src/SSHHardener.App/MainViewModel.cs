@@ -34,8 +34,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private bool _busy;
     private string _host = "", _port = "22", _username = "root", _privateKey = "";
     private string _newPort = "22022", _newUsername = "sshadmin", _newPrivateKey = "", _publicKey = "";
-    private bool _createUser = true, _grantSudo, _noPasswordSudo, _disablePassword = true, _closeOldPort, _disableForwarding, _fail2Ban;
-    private string _rootPolicy = "prohibit-password", _maxRetry = "3", _banSeconds = "3600", _whitelist = "", _rollbackMinutes = "10";
+    private bool _createUser = true, _grantSudo, _noPasswordSudo, _disablePassword = true, _closeOldPort, _disableForwarding, _fail2Ban = true;
+    private string _rootPolicy = "prohibit-password", _maxRetry = "3", _maxAuthTries = "3", _findTimeMinutes = "10", _banSeconds = "3600", _whitelist = "", _rollbackMinutes = "10";
     private string _status = "", _auditText = "", _previewText = "", _banText = "", _banIp = "", _summary = "", _keyFingerprint = "";
     private int _progress, _selectedTab;
     private ServerProfile? _selectedProfile;
@@ -134,6 +134,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public bool Fail2Ban { get => _fail2Ban; set => SetOption(ref _fail2Ban, value); }
     public string RootPolicy { get => _rootPolicy; set => SetOption(ref _rootPolicy, value); }
     public string MaxRetry { get => _maxRetry; set => SetOption(ref _maxRetry, value); }
+    public string MaxAuthTries { get => _maxAuthTries; set => SetOption(ref _maxAuthTries, value); }
+    public string FindTimeMinutes { get => _findTimeMinutes; set => SetOption(ref _findTimeMinutes, value); }
     public string BanSeconds { get => _banSeconds; set => SetOption(ref _banSeconds, value); }
     public string Whitelist { get => _whitelist; set => SetOption(ref _whitelist, value); }
     public string RollbackMinutes { get => _rollbackMinutes; set => SetOption(ref _rollbackMinutes, value); }
@@ -309,7 +311,9 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         ct.ThrowIfCancellationRequested();
         var session = RequireSession();
         if (_audit is null) throw new InvalidOperationException(L["EmptyAudit"]);
-        if (!int.TryParse(MaxRetry, out var retries) || !int.TryParse(BanSeconds, out var ban) || !int.TryParse(RollbackMinutes, out var rollback)) throw new ArgumentException(L["NumberInvalid"]);
+        if (!int.TryParse(MaxRetry, out var retries) || !int.TryParse(MaxAuthTries, out var maxAuthTries) ||
+            !int.TryParse(FindTimeMinutes, out var findMinutes) || findMinutes is < 1 or > 1440 ||
+            !int.TryParse(BanSeconds, out var ban) || !int.TryParse(RollbackMinutes, out var rollback)) throw new ArgumentException(L["NumberInvalid"]);
         var options = new HardeningOptions
         {
             NewPort = ParsePort(NewPort), Username = NewUsername.Trim(), PublicKey = PublicKey.Trim(),
@@ -317,7 +321,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             CreateUser = CreateUser, GrantSudo = GrantSudo, NoPasswordSudo = NoPasswordSudo,
             DisablePasswordAuthentication = DisablePassword, PermitRootLogin = RootPolicy,
             CloseOldPort = CloseOldPort, DisableForwarding = DisableForwarding,
-            ConfigureFail2Ban = Fail2Ban, MaxRetry = retries, BanSeconds = ban,
+            ConfigureFail2Ban = Fail2Ban, MaxRetry = retries, MaxAuthTries = maxAuthTries, FindTimeSeconds = findMinutes * 60, BanSeconds = ban,
             IgnoreAddresses = Whitelist.Split([',', ';', '\n', '\r'], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries),
             RollbackMinutes = rollback
         };
@@ -383,13 +387,15 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         if (!string.Equals(_executedIdentityKey, _session.Identity.KeyBase64, StringComparison.Ordinal))
             throw new InvalidOperationException("Rollback server identity mismatch.");
         await _engine.RollbackAsync(_session, plan.TransactionId, ct);
+        _result = new HardeningResult(plan.TransactionId, false, true, L["RollbackComplete"], DateTimeOffset.UtcNow);
         InvalidateConnection();
-        AddLog(L["Rollback"] + ": " + plan.TransactionId);
+        Status = L["RollbackComplete"];
+        AddLog(Status + ": " + plan.TransactionId);
     }
 
     private async Task RefreshBansAsync(CancellationToken ct)
     {
-        var result = await RequireSession().ExecuteAsync("fail2ban-client status sshd", true, ct);
+        var result = await RequireSession().ExecuteAsync("fail2ban-client status sshhardener-sshd", true, ct);
         result.EnsureSuccess("fail2ban");
         BanText = result.Output;
     }
@@ -397,7 +403,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private async Task UnbanAsync(CancellationToken ct)
     {
         if (!IPAddress.TryParse(BanIp.Trim(), out var ip)) throw new ArgumentException(L["BanIp"]);
-        var result = await RequireSession().ExecuteAsync("fail2ban-client set sshd unbanip '" + ip + "'", true, ct);
+        var result = await RequireSession().ExecuteAsync("fail2ban-client set sshhardener-sshd unbanip '" + ip + "'", true, ct);
         result.EnsureSuccess("unban");
         await RefreshBansAsync(ct);
     }

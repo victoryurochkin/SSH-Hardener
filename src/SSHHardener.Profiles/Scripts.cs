@@ -1,6 +1,6 @@
 namespace SSHHardener.Profiles;
 
-internal static class Scripts
+internal static partial class Scripts
 {
     internal const string Header = """
         set -eu
@@ -25,6 +25,9 @@ internal static class Scripts
         ignore_addresses=@@IGNORE@@
         maxretry=@@RETRIES@@
         bantime=@@BANTIME@@
+        findtime=@@FINDTIME@@
+        maxauthtries=@@MAXAUTHTRIES@@
+        package_manager=@@PACKAGE_MANAGER@@
         minutes=@@MINUTES@@
         base=/var/lib/ssh-hardener
         tx="$base/transactions/$id"
@@ -103,7 +106,7 @@ internal static class Scripts
           systemctl is-active --quiet "$timer" || fail 'Recovery timer is no longer active.'
         }
 
-        """;
+        """ + Fail2BanFunctions + OwnedFirewallFunctions;
 
     internal const string PreflightBody = """
         [ "$(id -u)" = 0 ] || fail 'Root privilege is required.'
@@ -160,7 +163,7 @@ internal static class Scripts
         if command -v ufw >/dev/null 2>&1 && ufw status | grep -q '^Status: active'; then live_firewall=ufw; fi
         if command -v firewall-cmd >/dev/null 2>&1 && firewall-cmd --state >/dev/null 2>&1; then [ "$live_firewall" = none ] || fail 'Multiple firewall managers are active.'; live_firewall=firewalld; fi
         [ "$live_firewall" = "$firewall" ] || fail 'Firewall changed since audit.'
-        if [ "$firewall" = none ]; then
+        if [ "$firewall" = none ] && ! only_managed_fail2ban_firewall; then
           if command -v nft >/dev/null 2>&1 && nft list ruleset 2>/dev/null | grep -q '[^[:space:]]'; then fail 'Unmanaged nftables rules detected.'; fi
           for tool in iptables-save ip6tables-save; do
             if command -v "$tool" >/dev/null 2>&1 && "$tool" | grep -Eq '^-A |^:[^ ]+ DROP'; then fail 'Unmanaged iptables rules detected.'; fi
@@ -175,11 +178,26 @@ internal static class Scripts
         fi
         if [ "$selinux" = Enforcing ] || [ "$selinux" = Permissive ]; then command -v semanage >/dev/null 2>&1 && command -v restorecon >/dev/null 2>&1 || fail 'SELinux changes require preinstalled semanage and restorecon.'; fi
         if [ "$use_fail2ban" = yes ]; then
-          command -v fail2ban-client >/dev/null 2>&1 || fail 'Fail2ban must already be installed.'
-          fail2ban-client ping >/dev/null || fail 'Fail2ban must already be running.'
-          fail2ban-client status | awk -F: '/Jail list/ {v=$2;gsub(/[[:space:]]/,"",v);if(v!="")exit 1}' || fail 'Existing fail2ban jails require manual policy and whitelist review.'
-          [ ! -e /etc/fail2ban/jail.d/zz-sshhardener.local ] || fail 'A managed fail2ban jail already exists.'
-          [ ! -L /etc/fail2ban/jail.d ] && [ -d /etc/fail2ban/jail.d ] || fail 'Unsafe fail2ban jail directory.'
+          command -v timeout >/dev/null 2>&1 && command -v systemd-run >/dev/null 2>&1 || fail 'Fail2ban installation requires timeout and systemd-run.'
+          [ ! -L /etc/fail2ban ] && [ ! -L /etc/fail2ban/jail.d ] || fail 'Unsafe fail2ban configuration path.'
+          [ ! -e /etc/fail2ban/jail.d/zz-sshhardener.local ] || fail 'A legacy managed jail exists. Review it before using the dedicated SSHHardener jail.'
+          if command -v fail2ban-client >/dev/null 2>&1; then
+            [ "$(command -v fail2ban-client)" = /usr/bin/fail2ban-client ] || fail 'A nonstandard Fail2ban installation requires manual review.'
+            if [ "$package_manager" = apt ]; then
+              [ "$(dpkg-query -W -f='${Status}' fail2ban 2>/dev/null || true)" = 'install ok installed' ] || fail 'Fail2ban is not managed by the configured package manager.'
+            else
+              command -v rpm >/dev/null 2>&1 || fail 'The existing Fail2ban installation cannot be verified.'
+              package_owner=$(rpm -qf --qf '%{NAME}' /usr/bin/fail2ban-client 2>/dev/null || true)
+              case "$package_owner" in fail2ban|fail2ban-server) :;; *) fail 'The existing Fail2ban installation is not package-managed.';; esac
+            fi
+            if fail2ban-client status sshd >/dev/null 2>&1; then fail 'A foreign sshd jail is active. Its policy must be reviewed before enabling the SSHHardener jail.'; fi
+          elif [ "$package_manager" != apt ]; then fail 'Automatic Fail2ban installation is supported only with configured Debian/Ubuntu apt repositories.'
+          fi
+          if [ "$package_manager" = apt ]; then command -v apt-get >/dev/null 2>&1 || fail 'apt-get is unavailable.'; fi
+          for unitfile in /run/systemd/system/fail2ban.service /etc/systemd/system/fail2ban.service; do
+            [ ! -e "$unitfile" ] && [ ! -L "$unitfile" ] || fail 'A pre-existing Fail2ban mask or custom unit requires manual review.'
+          done
+          fail2ban_foreign_policy_check || fail 'Existing Fail2ban SSH policy requires manual review.'
         fi
         printf 'Read-only preflight passed.\n'
         """;
@@ -225,7 +243,7 @@ internal static class Scripts
         [Unit]
         Description=Recover unfinished SSHHardener transaction $id at boot
         After=local-fs.target firewalld.service ufw.service
-        Before=ssh.service sshd.service fail2ban.service
+        Before=ssh.service sshd.service fail2ban.service nftables.service
         [Service]
         Type=oneshot
         ExecStart=/bin/sh $tx/rollback.sh boot
@@ -348,24 +366,6 @@ internal static class Scripts
             ;;
           none) printf 'No firewall is active; no firewall is enabled.\n';;
         esac
-        if [ "$use_fail2ban" = yes ]; then
-          touch "$tx/fail2ban-added"
-          sync -f "$tx/fail2ban-added"
-          cat > /etc/fail2ban/jail.d/zz-sshhardener.local <<EOF
-        [sshd]
-        enabled = true
-        filter = sshd
-        port = $port,$oldport
-        backend = systemd
-        maxretry = $maxretry
-        findtime = 600
-        bantime = $bantime
-        ignoreip = $ignore_addresses
-        EOF
-          fail2ban-client -t
-          fail2ban-client reload
-          fail2ban-client status sshd
-        fi
         """;
 
     internal const string ConfigFunctions = """
@@ -379,8 +379,9 @@ internal static class Scripts
           printf '# SSHHardener managed transaction %s\nPort %s\n' "$id" "$port" > "$candidate"
           if [ "$phase" = dual ] || [ "$close_old" = no ]; then [ "$port" = "$oldport" ] || printf 'Port %s\n' "$oldport" >> "$candidate"; fi
           printf 'PubkeyAuthentication yes\n' >> "$candidate"
+          if [ "$use_fail2ban" = yes ]; then printf 'LogLevel VERBOSE\n' >> "$candidate"; fi
           if [ "$phase" = final ]; then
-            printf 'PermitEmptyPasswords no\nPermitRootLogin %s\n' "$root_policy" >> "$candidate"
+            printf 'PermitEmptyPasswords no\nPermitRootLogin %s\nMaxAuthTries %s\n' "$root_policy" "$maxauthtries" >> "$candidate"
             if [ "$password_policy" = no ]; then printf 'PasswordAuthentication no\nKbdInteractiveAuthentication no\n' >> "$candidate"; fi
             if [ "$forwarding_policy" = no ]; then printf 'X11Forwarding no\nAllowAgentForwarding no\nAllowTcpForwarding no\n' >> "$candidate"; fi
           fi
@@ -391,6 +392,8 @@ internal static class Scripts
           context="user=$user,addr=$adminaddr,host=$adminaddr,lport=$port"
           /usr/sbin/sshd -T -f "$candidate" -C "$context" > "$tx/effective-$phase"
           grep -qx 'pubkeyauthentication yes' "$tx/effective-$phase" || fail 'Public-key authentication is not effective.'
+          if [ "$use_fail2ban" = yes ]; then grep -qx 'loglevel VERBOSE' "$tx/effective-$phase" || fail 'SSH verbose authentication logging is required for reliable failed-key accounting.'; fi
+          if [ "$phase" = final ]; then grep -qx "maxauthtries $maxauthtries" "$tx/effective-$phase" || fail 'The requested per-connection SSH authentication limit is not effective.'; fi
           if [ "$phase" = final ] && [ "$password_policy" = no ]; then
             grep -qx 'passwordauthentication no' "$tx/effective-$phase" && grep -qx 'kbdinteractiveauthentication no' "$tx/effective-$phase" || fail 'Password authentication remains effective.'
           fi
@@ -480,6 +483,7 @@ internal static class Scripts
           systemctl enable --now "$timer" >/dev/null
         fi
         [ "$(cat "$base/active" 2>/dev/null)" = "$id" ] || fail 'Transaction ownership mismatch.'
+        fail2ban_package_recovery_ready || exit 1
         printf '%s\n' rolling-back > "$tx/state" || true
         sync -f "$tx/state" || true
         failed=0
@@ -506,10 +510,7 @@ internal static class Scripts
         if [ -f "$tx/selinux-intent" ]; then
           if semanage port -l -n | awk -v p="$port" '$1=="ssh_port_t" && $2=="tcp" {gsub(/,/," ");for(i=3;i<=NF;i++)if($i==p)found=1}END{exit !found}'; then semanage port -d -p tcp "$port" || failed=1; fi
         fi
-        if [ -f "$tx/fail2ban-added" ]; then
-          rm -f /etc/fail2ban/jail.d/zz-sshhardener.local || failed=1
-          if [ "${1:-}" != boot ]; then fail2ban-client reload || failed=1; fi
-        fi
+        recover_fail2ban "${1:-auto}" || failed=1
         if [ -f "$tx/sudoers-added" ]; then
           file="/etc/sudoers.d/90-sshhardener-$user"
           if same_file_contents "$file" "$tx/sudoers.new"; then rm -f "$file" || failed=1; else failed=1; fi

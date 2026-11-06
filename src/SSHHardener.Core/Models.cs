@@ -55,7 +55,9 @@ public sealed record HardeningOptions
     public bool CloseOldPort { get; init; }
     public bool DisableForwarding { get; init; }
     public bool ConfigureFail2Ban { get; init; }
+    public int MaxAuthTries { get; init; } = 3;
     public int MaxRetry { get; init; } = 3;
+    public int FindTimeSeconds { get; init; } = 600;
     public int BanSeconds { get; init; } = 3600;
     public string[] IgnoreAddresses { get; init; } = [];
     public int RollbackMinutes { get; init; } = 10;

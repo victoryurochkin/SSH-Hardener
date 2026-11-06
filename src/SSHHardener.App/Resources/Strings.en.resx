@@ -48,8 +48,11 @@
 <data name="RootPolicy" xml:space="preserve"><value>Root login</value></data>
 <data name="CloseOldPort" xml:space="preserve"><value>Remove the old listening port after verification</value></data>
 <data name="DisableForwarding" xml:space="preserve"><value>Disable tunnels, agent forwarding and X11</value></data>
-<data name="Fail2Ban" xml:space="preserve"><value>Configure an existing fail2ban installation</value></data>
-<data name="MaxRetry" xml:space="preserve"><value>Matching failures before a ban</value></data>
+<data name="Fail2Ban" xml:space="preserve"><value>Install and configure Fail2ban</value></data>
+<data name="MaxRetry" xml:space="preserve"><value>Failed logins before an IP ban</value></data>
+<data name="MaxAuthTries" xml:space="preserve"><value>Attempts per SSH connection</value></data>
+<data name="FindTimeMinutes" xml:space="preserve"><value>Failure counting window, minutes</value></data>
+<data name="Fail2BanHint" xml:space="preserve"><value>The SSH limit applies to one connection. Fail2ban counts failures from one IP within the chosen period, across connections. Defaults: 3 failures in 10 minutes and a 1-hour ban. The administrator IP seen by the server is whitelisted. On Debian/Ubuntu, Fail2ban is installed from the configured OS repositories if needed; on RPM systems, it must already be installed.</value></data>
 <data name="BanSeconds" xml:space="preserve"><value>Ban duration, seconds (-1 = indefinite)</value></data>
 <data name="Whitelist" xml:space="preserve"><value>Additional IPs / CIDRs, comma-separated</value></data>
 <data name="RollbackMinutes" xml:space="preserve"><value>Automatic rollback after, minutes</value></data>
@@ -111,4 +114,5 @@
 <data name="EmptyProfiles" xml:space="preserve"><value>Save the connection settings to reconnect to this server quickly next time. Profiles do not store passwords.</value></data>
 <data name="EmptyBans" xml:space="preserve"><value>Connect to a server and select “Refresh bans” to read the sshd jail ban list.</value></data>
 <data name="EmptyLog" xml:space="preserve"><value>Execution steps and verification results will appear here. No changes have been applied yet.</value></data>
+<data name="RollbackComplete" xml:space="preserve"><value>The server confirmed manual rollback of the changes.</value></data>
 </root>

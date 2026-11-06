@@ -26,6 +26,8 @@ public static partial class InputValidators
         if (!string.IsNullOrEmpty(options.NewUserSudoPassword)) throw new ArgumentException("New user passwords are not supported by this release.");
         if (options.RollbackMinutes is < 5 or > 60) throw new ArgumentException("Rollback deadline must be 5–60 minutes.");
         if (options.MaxRetry is < 1 or > 100) throw new ArgumentException("MaxRetry must be 1–100.");
+        if (options.MaxAuthTries is < 1 or > 20) throw new ArgumentException("MaxAuthTries must be 1–20 attempts per SSH connection.");
+        if (options.FindTimeSeconds is < 60 or > 86400) throw new ArgumentException("Fail2ban findtime must be 60–86400 seconds.");
         if (options.BanSeconds != -1 && options.BanSeconds is < 60 or > 31536000)
             throw new ArgumentException("Ban duration must be -1 or 60–31536000 seconds.");
         foreach (var address in options.IgnoreAddresses) ValidateAddress(address);

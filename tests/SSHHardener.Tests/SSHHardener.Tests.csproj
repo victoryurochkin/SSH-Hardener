@@ -16,4 +16,7 @@
     <ProjectReference Include="../../src/SSHHardener.Ssh/SSHHardener.Ssh.csproj" />
     <ProjectReference Include="../../src/SSHHardener.Reports/SSHHardener.Reports.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Update="Fixtures/managed-firewall-fixture.py" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

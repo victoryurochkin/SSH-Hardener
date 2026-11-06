@@ -53,7 +53,7 @@ public sealed class AuditService : IAuditService
         return b < 0 ? "" : value[a..b].Trim();
     }
 
-    internal const string AuditScript = """
+    internal const string AuditScript = Scripts.OwnedFirewallFunctions + """
         set -eu
         export LC_ALL=C
         osfield() { awk -F= -v key="$1" '$1==key {v=substr($0,index($0,"=")+1);gsub(/^"|"$/,"",v);print v;exit}' /etc/os-release 2>/dev/null || true; }
@@ -88,6 +88,7 @@ public sealed class AuditService : IAuditService
           if command -v nft >/dev/null 2>&1 && nft list ruleset 2>/dev/null | grep -q '[^[:space:]]'; then firewall=nftables; fi
           if command -v iptables-save >/dev/null 2>&1 && iptables-save 2>/dev/null | grep -Eq '^-A |^:[^ ]+ DROP'; then firewall=iptables; fi
           if command -v ip6tables-save >/dev/null 2>&1 && ip6tables-save 2>/dev/null | grep -Eq '^-A |^:[^ ]+ DROP'; then firewall=iptables; fi
+          if [ "$firewall" != none ] && only_managed_fail2ban_firewall; then firewall=none; fi
         fi
         printf 'SSHARDENER_FIREWALL=%s\n' "$firewall"
         printf 'SSHARDENER_CONFIG_BEGIN\n'
