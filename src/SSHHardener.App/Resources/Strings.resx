@@ -34,13 +34,17 @@
 <data name="NewPort" xml:space="preserve"><value>Новый TCP-порт SSH</value></data>
 <data name="NewUsername" xml:space="preserve"><value>Пользователь для нового входа</value></data>
 <data name="CreateUser" xml:space="preserve"><value>Создать нового пользователя</value></data>
-<data name="NewPrivateKey" xml:space="preserve"><value>Приватный ключ нового пользователя</value></data>
-<data name="NewPassphrase" xml:space="preserve"><value>Парольная фраза нового ключа</value></data>
+<data name="NewPrivateKey" xml:space="preserve"><value>Приватный SSH-ключ</value></data>
+<data name="NewPassphrase" xml:space="preserve"><value>Парольная фраза ключа</value></data>
 <data name="PublicKey" xml:space="preserve"><value>Публичный ключ OpenSSH</value></data>
 <data name="ReadPublicKey" xml:space="preserve"><value>Получить публичный ключ из приватного</value></data>
 <data name="ImportPublicKey" xml:space="preserve"><value>Импорт .pub</value></data>
 <data name="GenerateKey" xml:space="preserve"><value>Создать RSA 4096…</value></data>
-<data name="KeyHint" xml:space="preserve"><value>Нет ключей? Задайте парольную фразу от 12 символов и нажмите «Создать RSA 4096…». Вы выберете папку и имя файла: приложение сохранит шифрованный приватный ключ .pem и публичный .pem.pub рядом. На сервер отправляется только публичный ключ. Сохраните оба файла и парольную фразу в безопасном месте: восстановить забытую фразу нельзя.</value></data>
+<data name="KeyHint" xml:space="preserve"><value>Нет ключей? Задайте парольную фразу от 12 символов и нажмите «Создать RSA 4096…». Формат сохранения: PPK v3 по умолчанию или PKCS#8 PEM. Приватный ключ и файл .pub сохраняются рядом; на сервер отправляется только публичный ключ. Сохраните оба файла и парольную фразу: забытую фразу восстановить нельзя.</value></data>
+<data name="ExportPuttyKey" xml:space="preserve"><value>Экспорт для RDM / PuTTY…</value></data>
+<data name="NewExportPuttyHint" xml:space="preserve"><value>Для существующего ключа выберите приватный файл выше, введите его текущую парольную фразу и нажмите «Экспорт для RDM / PuTTY…». Новый файл .ppk содержит тот же ключ с прежним отпечатком; повторно применять настройки сервера не нужно.</value></data>
+<data name="PuttyKeyExported" xml:space="preserve"><value>Ключ экспортирован в PPK v3. В клиенте выберите этот .ppk; используется та же парольная фраза.</value></data>
+<data name="ExportPuttyTitle" xml:space="preserve"><value>Экспорт ключа для RDM / PuTTY</value></data>
 <data name="GrantSudo" xml:space="preserve"><value>Предоставить административный доступ sudo</value></data>
 <data name="NoPasswordSudo" xml:space="preserve"><value>NOPASSWD: sudo без пароля (полный контроль сервера)</value></data>
 <data name="NewSudoPassword" xml:space="preserve"><value>Пароль sudo нового пользователя</value></data>

@@ -4,6 +4,21 @@ using SSHHardener.Profiles;
 
 // This is an explicit integration runner, not a test which silently passes without Docker.
 var folder = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../artifacts/integration"));
+if (args.Length > 1 && args[0] == "--prepare-putty")
+{
+    await PuttyInteropScenario.PrepareAsync(args[1]);
+    return 0;
+}
+if (args.Length > 1 && args[0] == "--oracle-putty")
+{
+    await PuttyInteropScenario.RunOracleAsync(args[1]);
+    return 0;
+}
+if (args.Length > 3 && args[0] == "--verify-putty")
+{
+    await PuttyInteropScenario.VerifyAsync(args[1], args[2], int.Parse(args[3], System.Globalization.CultureInfo.InvariantCulture));
+    return 0;
+}
 if (args.Length > 1 && args[0] == "--export-fail2ban")
 {
     Fail2BanScenario.Export(args[1]);

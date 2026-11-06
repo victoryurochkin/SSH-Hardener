@@ -82,6 +82,7 @@
       "sshhardener.ssh": {
         "type": "Project",
         "dependencies": {
+          "BouncyCastle.Cryptography": "[2.7.0, )",
           "SSH.NET": "[2026.0.0, )",
           "SSHHardener.Core": "[0.1.0, )"
         }

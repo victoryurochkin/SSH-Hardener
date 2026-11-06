@@ -58,6 +58,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         UnbanCommand = new AsyncRelayCommand(() => RunAsync(UnbanAsync));
         ExportCommand = new AsyncRelayCommand(() => RunAsync(ExportAsync));
         GenerateKeyCommand = new AsyncRelayCommand(() => RunAsync(GenerateKeyAsync));
+        ExportPuttyKeyCommand = new AsyncRelayCommand(() => RunAsync(ExportPuttyKeyAsync));
         ReadPublicKeyCommand = new AsyncRelayCommand(() => RunAsync(ReadPublicKeyAsync));
         SaveProfileCommand = new AsyncRelayCommand(() => RunAsync(SaveProfileAsync));
         LoadProfileCommand = new RelayCommand(LoadProfile);
@@ -107,6 +108,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public bool CanManageBans => CanAudit && _audit?.HasRoot == true;
     public bool CanUnban => CanManageBans && IPAddress.TryParse(BanIp.Trim(), out _);
     public bool CanLoadProfile => Idle && SelectedProfile is not null;
+    public bool CanExportPuttyKey => Idle && !string.IsNullOrWhiteSpace(NewPrivateKey);
     public string Host { get => _host; set => SetConnection(ref _host, value); }
     public string Port { get => _port; set => SetConnection(ref _port, value); }
     public string Username { get => _username; set => SetConnection(ref _username, value); }
@@ -157,6 +159,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public IAsyncRelayCommand UnbanCommand { get; }
     public IAsyncRelayCommand ExportCommand { get; }
     public IAsyncRelayCommand GenerateKeyCommand { get; }
+    public IAsyncRelayCommand ExportPuttyKeyCommand { get; }
     public IAsyncRelayCommand ReadPublicKeyCommand { get; }
     public IAsyncRelayCommand SaveProfileCommand { get; }
     public IRelayCommand LoadProfileCommand { get; }
@@ -183,7 +186,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     {
         foreach (var name in new[] { nameof(CanConnect), nameof(CanAudit), nameof(CanBuildPlan), nameof(HasPlanBlocker),
             nameof(PlanAvailabilityMessage), nameof(AuditPrivilegeMessage), nameof(CanApply),
-            nameof(CanRollback), nameof(CanExport), nameof(CanManageBans), nameof(CanUnban), nameof(CanLoadProfile) })
+            nameof(CanRollback), nameof(CanExport), nameof(CanManageBans), nameof(CanUnban), nameof(CanLoadProfile), nameof(CanExportPuttyKey) })
             OnPropertyChanged(name);
     }
 
@@ -419,13 +422,31 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
     private async Task GenerateKeyAsync(CancellationToken ct)
     {
-        var dialog = new SaveFileDialog { FileName = "sshadmin.pem", Filter = "Encrypted PKCS#8 PEM|*.pem", AddExtension = true, OverwritePrompt = false };
+        var dialog = new SaveFileDialog { FileName = "sshadmin", Filter = "Encrypted PuTTY PPK v3 (RDM / PuTTY)|*.ppk|Encrypted PKCS#8 PEM|*.pem", FilterIndex = 1, AddExtension = true, OverwritePrompt = false };
         if (dialog.ShowDialog() != true) return;
         if (File.Exists(dialog.FileName) || File.Exists(dialog.FileName + ".pub")) throw new IOException(L["KeyExists"]);
-        PublicKey = await _keys.GenerateRsaAsync(dialog.FileName, ReadNewKeyPassphrase?.Invoke() ?? "", ct);
+        var format = dialog.FilterIndex == 1 ? PrivateKeyFormat.EncryptedPuttyV3 : PrivateKeyFormat.EncryptedPkcs8Pem;
+        PublicKey = await _keys.GenerateRsaAsync(dialog.FileName, ReadNewKeyPassphrase?.Invoke() ?? "", ct, format);
         NewPrivateKey = dialog.FileName;
         AddLog(L["KeyGenerated"]);
         MessageBox.Show($"{L["KeyGenerated"]}\n\n{dialog.FileName}\n{dialog.FileName}.pub", "SSH Hardener", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    private async Task ExportPuttyKeyAsync(CancellationToken ct)
+    {
+        var source = NewPrivateKey;
+        if (!File.Exists(source)) throw new ArgumentException(L["NewPrivateKey"]);
+        var dialog = new SaveFileDialog
+        {
+            Title = L["ExportPuttyTitle"],
+            FileName = Path.GetFileNameWithoutExtension(source) + ".ppk",
+            Filter = "Encrypted PuTTY PPK v3|*.ppk", AddExtension = true, DefaultExt = ".ppk", OverwritePrompt = false
+        };
+        if (dialog.ShowDialog() != true) return;
+        var passphrase = ReadNewKeyPassphrase?.Invoke() ?? "";
+        var publicKey = await _keys.ExportRsaToPuttyAsync(source, dialog.FileName, passphrase, passphrase, ct);
+        AddLog(L["PuttyKeyExported"]);
+        MessageBox.Show($"{L["PuttyKeyExported"]}\n\n{dialog.FileName}\n\n{KeyService.Fingerprint(publicKey)}", "SSH Hardener", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private async Task ReadPublicKeyAsync(CancellationToken ct)
@@ -465,7 +486,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
     private static string? BrowsePrivateKey()
     {
-        var dialog = new OpenFileDialog { Filter = "Private key|*.pem;*.key;id_*|All files|*.*" };
+        var dialog = new OpenFileDialog { Filter = "Private key|*.ppk;*.pem;*.key;id_*|All files|*.*" };
         return dialog.ShowDialog() == true ? dialog.FileName : null;
     }
 

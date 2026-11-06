@@ -122,6 +122,8 @@ public partial class App : Application
                 Shutdown(0);
                 return;
             }
+            if (e.Args.Contains("--keys", StringComparer.Ordinal))
+                _services.GetRequiredService<MainViewModel>().SelectedTab = 2;
             window.Show();
         }
         catch (Exception exception)

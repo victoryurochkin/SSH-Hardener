@@ -34,13 +34,17 @@
 <data name="NewPort" xml:space="preserve"><value>New SSH TCP port</value></data>
 <data name="NewUsername" xml:space="preserve"><value>User for the new login</value></data>
 <data name="CreateUser" xml:space="preserve"><value>Create a new user</value></data>
-<data name="NewPrivateKey" xml:space="preserve"><value>New user's private key</value></data>
-<data name="NewPassphrase" xml:space="preserve"><value>New key passphrase</value></data>
+<data name="NewPrivateKey" xml:space="preserve"><value>SSH private key</value></data>
+<data name="NewPassphrase" xml:space="preserve"><value>Key passphrase</value></data>
 <data name="PublicKey" xml:space="preserve"><value>OpenSSH public key</value></data>
 <data name="ReadPublicKey" xml:space="preserve"><value>Read public key from private key</value></data>
 <data name="ImportPublicKey" xml:space="preserve"><value>Import .pub</value></data>
 <data name="GenerateKey" xml:space="preserve"><value>Generate RSA 4096…</value></data>
-<data name="KeyHint" xml:space="preserve"><value>No keys yet? Enter a passphrase of at least 12 characters and select “Generate RSA 4096…”. Choose a folder and filename: the encrypted .pem private key and .pem.pub public key are saved together. Only the public key is uploaded. Keep both files and the passphrase safe: a forgotten passphrase cannot be recovered.</value></data>
+<data name="KeyHint" xml:space="preserve"><value>No keys yet? Enter a passphrase of at least 12 characters and select “Generate RSA 4096…”. Choose PPK v3 (the default) or PKCS#8 PEM when saving. The private key and .pub file are saved together; only the public key is uploaded. Keep both files and the passphrase safe: a forgotten passphrase cannot be recovered.</value></data>
+<data name="ExportPuttyKey" xml:space="preserve"><value>Export for RDM / PuTTY…</value></data>
+<data name="NewExportPuttyHint" xml:space="preserve"><value>For an existing key, select its private key file above, enter its current passphrase, then select “Export for RDM / PuTTY…”. The new .ppk file contains the same key and fingerprint. You do not need to apply the server settings again.</value></data>
+<data name="PuttyKeyExported" xml:space="preserve"><value>Key exported as PPK v3. Select this .ppk file in your client; it uses the same passphrase.</value></data>
+<data name="ExportPuttyTitle" xml:space="preserve"><value>Export key for RDM / PuTTY</value></data>
 <data name="GrantSudo" xml:space="preserve"><value>Grant administrator access with sudo</value></data>
 <data name="NoPasswordSudo" xml:space="preserve"><value>NOPASSWD: sudo without a password (full server control)</value></data>
 <data name="NewSudoPassword" xml:space="preserve"><value>New user's sudo password</value></data>

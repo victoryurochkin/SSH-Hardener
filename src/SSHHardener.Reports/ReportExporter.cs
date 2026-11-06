@@ -45,7 +45,9 @@ public sealed class ReportExporter
             lines.AppendLine("## Requested policy");
             lines.AppendLine("These are the requested plan settings, not measurements of the server after applying changes.");
             AppendCodeBlock(lines, JsonSerializer.Serialize(requestedPolicy, new JsonSerializerOptions { WriteIndented = true }), "json");
-            lines.AppendLine("## Connection").AppendLine("```text");
+            lines.AppendLine("## Connection");
+            lines.AppendLine("The ssh command requires an OpenSSH-compatible private-key file. PuTTY PPK files are used with a PPK-capable client such as RDM/PuTTY.");
+            lines.AppendLine("```text");
             // Connection names are validated at planning; host is encoded for a human-readable report only.
             lines.AppendLine($"ssh -p {plan.Options.NewPort} -i <private-key-file> {plan.Options.Username}@{plan.OriginalConnection.Host}");
             lines.AppendLine("```").AppendLine("```sshconfig");
