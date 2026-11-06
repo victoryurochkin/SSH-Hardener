@@ -50,6 +50,8 @@ public sealed class ManagedFirewallProbeTests
         var directory = Path.Combine(Path.GetTempPath(), "sshhardener-firewall-test-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         var helperPath = Path.Combine(directory, "actual-managed-firewall.py");
+        Exception? primaryFailure = null;
+        var canRemoveDirectory = true;
         try
         {
             await File.WriteAllTextAsync(helperPath, helper, new UTF8Encoding(false), CancellationToken.None);
@@ -74,27 +76,70 @@ public sealed class ManagedFirewallProbeTests
                 throw new InvalidOperationException("Managed-firewall tests require Python 3.11+. Install the Python launcher or set SSH_HARDENER_TEST_PYTHON to a Python executable.", exception);
             }
             using (process)
-            using (var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
+            using (var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
             {
                 var output = process.StandardOutput.ReadToEndAsync();
                 var error = process.StandardError.ReadToEndAsync();
-                try { await process.WaitForExitAsync(timeout.Token); }
-                catch (OperationCanceledException)
+                try
                 {
-                    if (!process.HasExited) process.Kill(entireProcessTree: true);
-                    throw new TimeoutException("The isolated managed-firewall fixture exceeded its 10-second time limit.");
+                    try
+                    {
+                        await process.WaitForExitAsync(timeout.Token);
+                        await Task.WhenAll(output, error).WaitAsync(timeout.Token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw new TimeoutException("The isolated managed-firewall fixture exceeded its 60-second startup/execution limit.");
+                    }
+                    var stdout = await output;
+                    var stderr = await error;
+                    Assert.True(process.ExitCode == 0, $"Fixture failed for {scenario}: exit={process.ExitCode}\n{stdout}\n{stderr}");
+                    using var result = JsonDocument.Parse(stdout);
+                    Assert.Equal(expectedAcceptance, result.RootElement.GetProperty("accepted").GetBoolean());
                 }
-                var stdout = await output;
-                var stderr = await error;
-                Assert.True(process.ExitCode == 0, $"Fixture failed for {scenario}: exit={process.ExitCode}\n{stdout}\n{stderr}");
-                using var result = JsonDocument.Parse(stdout);
-                Assert.Equal(expectedAcceptance, result.RootElement.GetProperty("accepted").GetBoolean());
+                catch (Exception failure)
+                {
+                    primaryFailure = failure;
+                    throw;
+                }
+                finally
+                {
+                    try
+                    {
+                        if (!process.HasExited) process.Kill(entireProcessTree: true);
+                        using var cleanup = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                        await process.WaitForExitAsync(cleanup.Token);
+                        // The Windows launcher may own a Python child holding the cwd and pipe handles.
+                        // Await pipe EOF as well as the launcher before deleting its working directory.
+                        await Task.WhenAll(output, error).WaitAsync(cleanup.Token);
+                    }
+                    catch (Exception cleanupFailure)
+                    {
+                        canRemoveDirectory = false;
+                        if (primaryFailure is null) throw;
+                        primaryFailure.Data["FixtureProcessCleanup"] = cleanupFailure.ToString();
+                        primaryFailure.Data["FixtureDirectory"] = directory;
+                    }
+                }
             }
+        }
+        catch (Exception failure)
+        {
+            primaryFailure ??= failure;
+            throw;
         }
         finally
         {
-            if (File.Exists(helperPath)) File.Delete(helperPath);
-            Directory.Delete(directory);
+            if (canRemoveDirectory)
+            {
+                try
+                {
+                    if (File.Exists(helperPath)) File.Delete(helperPath);
+                    Directory.Delete(directory);
+                }
+                catch (Exception cleanupFailure) when (primaryFailure is not null)
+                { primaryFailure.Data["FixtureDirectoryCleanup"] = cleanupFailure.ToString(); }
+            }
         }
     }
 }

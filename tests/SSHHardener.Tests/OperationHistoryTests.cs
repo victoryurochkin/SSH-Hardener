@@ -12,6 +12,7 @@ namespace SSHHardener.Tests;
 public sealed class OperationHistoryTests : IDisposable
 {
     private readonly string _directory = Path.Combine(Path.GetTempPath(), "sshhardener-history-tests-" + Guid.NewGuid().ToString("N"));
+    private Exception? _lockHolderFailure;
     private string DataPath => Path.Combine(_directory, "operations.dat");
     private string LockPath => Path.Combine(_directory, "operations.lock");
 
@@ -194,28 +195,58 @@ public sealed class OperationHistoryTests : IDisposable
         var store = new OperationHistoryStore(_directory);
         await store.UpsertAsync(Record(1), CancellationToken.None);
         var before = await File.ReadAllBytesAsync(DataPath);
-        var command = "$historyLock=[System.IO.File]::Open('" + LockPath.Replace("'", "''", StringComparison.Ordinal)
-            + "',[System.IO.FileMode]::OpenOrCreate,[System.IO.FileAccess]::ReadWrite,[System.IO.FileShare]::None); [Console]::WriteLine('LOCKED'); [Console]::Out.Flush(); [Console]::ReadLine() | Out-Null; $historyLock.Dispose()";
+        var command = "$ErrorActionPreference='Stop'; $historyLock=$null; try { $historyLock=[System.IO.File]::Open('" + LockPath.Replace("'", "''", StringComparison.Ordinal)
+            + "',[System.IO.FileMode]::OpenOrCreate,[System.IO.FileAccess]::ReadWrite,[System.IO.FileShare]::None); [Console]::WriteLine('LOCKED'); [Console]::Out.Flush(); [Console]::ReadLine() | Out-Null } finally { if ($null -ne $historyLock) { $historyLock.Dispose() } }";
         var start = new ProcessStartInfo("powershell.exe")
         {
             UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true,
             RedirectStandardOutput = true, RedirectStandardError = true
         };
-        foreach (var argument in new[] { "-NoProfile", "-NonInteractive", "-Command", command }) start.ArgumentList.Add(argument);
+        foreach (var argument in new[] { "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", command }) start.ArgumentList.Add(argument);
         using var holder = Process.Start(start) ?? throw new InvalidOperationException("Cannot start the history lock holder.");
+        var stderr = holder.StandardError.ReadToEndAsync();
+        Exception? primaryFailure = null;
         try
         {
-            Assert.Equal("LOCKED", await holder.StandardOutput.ReadLineAsync().WaitAsync(TimeSpan.FromSeconds(10)));
+            // Cold Windows PowerShell startup competes with RSA/Argon2 tests on shared CI CPUs.
+            // Only readiness has a generous bound; the lock/cancellation check below remains 200 ms.
+            var ready = await holder.StandardOutput.ReadLineAsync().WaitAsync(TimeSpan.FromSeconds(60));
+            var startupError = stderr.IsCompletedSuccessfully ? await stderr : "";
+            Assert.True(ready == "LOCKED", "The lock holder did not confirm ownership: " + ready +
+                (startupError.Length == 0 ? "" : "\n" + startupError));
             using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => store.UpsertAsync(Record(2), cancellation.Token));
             Assert.Equal(before, await File.ReadAllBytesAsync(DataPath));
         }
+        catch (Exception failure)
+        {
+            primaryFailure = failure;
+            _lockHolderFailure = failure;
+            throw;
+        }
         finally
         {
-            await holder.StandardInput.WriteLineAsync("release");
-            holder.StandardInput.Close();
-            try { await holder.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5)); }
-            finally { if (!holder.HasExited) holder.Kill(true); }
+            try
+            {
+                // EOF releases ReadLine even if startup had not reached LOCKED before a failure.
+                try { holder.StandardInput.Close(); }
+                catch (IOException) { /* The child may already have closed its pipe. */ }
+                if (!holder.HasExited)
+                {
+                    try { await holder.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(15)); }
+                    catch (TimeoutException)
+                    {
+                        if (!holder.HasExited) holder.Kill(entireProcessTree: true);
+                        await holder.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(30));
+                    }
+                }
+                await stderr.WaitAsync(TimeSpan.FromSeconds(30));
+            }
+            catch (Exception cleanupFailure)
+            {
+                if (primaryFailure is null) { _lockHolderFailure = cleanupFailure; throw; }
+                primaryFailure.Data["LockHolderCleanup"] = cleanupFailure.ToString();
+            }
         }
         Assert.Equal(2, (await store.UpsertAsync(Record(2), CancellationToken.None)).Count);
     }
@@ -229,7 +260,12 @@ public sealed class OperationHistoryTests : IDisposable
     public void Dispose()
     {
         if (!Directory.Exists(_directory)) return;
-        foreach (var path in Directory.GetFiles(_directory)) File.Delete(path);
-        Directory.Delete(_directory);
+        try
+        {
+            foreach (var path in Directory.GetFiles(_directory)) File.Delete(path);
+            Directory.Delete(_directory);
+        }
+        catch (Exception cleanupFailure) when (_lockHolderFailure is not null)
+        { _lockHolderFailure.Data["HistoryDirectoryCleanup"] = cleanupFailure.ToString(); }
     }
 }
