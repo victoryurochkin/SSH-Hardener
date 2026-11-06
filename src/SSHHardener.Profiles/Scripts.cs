@@ -339,7 +339,7 @@ internal static class Scripts
           current=$(sha256sum /etc/ssh/sshd_config | awk '{print $1}')
           [ "$current" = "$(cat "$tx/main.sha256")" ] || fail 'SSH config changed concurrently. Recovery remains armed.'
           ssh_include_manifest > "$tx/includes.current"
-          cmp -s "$tx/includes.sha256" "$tx/includes.current" || fail 'SSH include files changed concurrently. Recovery remains armed.'
+          same_file_contents "$tx/includes.sha256" "$tx/includes.current" || fail 'SSH include files changed concurrently. Recovery remains armed.'
           candidate=$(mktemp /etc/ssh/.sshhardener.XXXXXX)
           printf '# SSHHardener managed transaction %s\nPort %s\n' "$id" "$port" > "$candidate"
           if [ "$phase" = dual ] || [ "$close_old" = no ]; then [ "$port" = "$oldport" ] || printf 'Port %s\n' "$oldport" >> "$candidate"; fi

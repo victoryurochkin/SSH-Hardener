@@ -37,6 +37,7 @@ public sealed class PlanBuilderTests
         var plan = new PlanBuilder().Build(Audit, Connection, Options with { KeyPassphrase = "key-secret" });
         Assert.DoesNotContain("connection-secret", plan.Preview);
         Assert.DoesNotContain("key-secret", plan.Preview);
+        Assert.DoesNotMatch(@"\bcmp\b", plan.Preview);
         Assert.Contains("oldport='2222'", plan.Preview);
         Assert.DoesNotContain("@@", plan.Preview);
         Assert.Equal(new[] { "preflight", "arm-rollback", "provision", "open-port", "configure-dual-port", "configure-final", "commit" }, plan.Steps.Select(x => x.Id));
